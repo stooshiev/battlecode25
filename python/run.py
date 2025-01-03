@@ -194,7 +194,6 @@ def get_server_version(ver_data) -> str | None:
     """Fetch the latest version from the server"""
     url = "https://api.battlecode.org/api/episode/e/bc25python/?format=json"
     #url = "https://api.battlecode.org/api/episode/e/bc24/?format=json"
-    return "0.0.1"
     try:
         with urllib.request.urlopen(url) as response:
             parsed = json.loads(response.read())
