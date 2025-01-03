@@ -93,7 +93,7 @@ ENGINE_VER_DATA = {
     "name": "engine",
     "file": "engine_version.txt",
     "get_property": lambda: "release_version_saturn" if properties["on_saturn"] else "release_version_public",
-    "get_url": lambda version: f"org/battlecode/battlecode25-python/{version}/battlecode.tar.gz",
+    "get_url": lambda version: f"maven/org/battlecode/battlecode25-python/{version}/battlecode.tar.gz",
     "get_filename": lambda version: "battlecode.tar.gz",
     "install": install_engine
 }
@@ -101,7 +101,7 @@ CLIENT_VER_DATA = {
     "name": "client",
     "file": "client_version.txt",
     "get_property": lambda: "release_version_client",
-    "get_url": lambda version: f"org/battlecode/battlecode25-client-{client_platform}-{'electron' if properties['compatibility_client'] else 'tauri'}/{version}/battlecode25-client-{client_platform}-{'electron' if properties['compatibility_client'] else 'tauri'}-{version}.zip",
+    "get_url": lambda version: f"maven/org/battlecode/battlecode25-client-{client_platform}-{'electron' if properties['compatibility_client'] else 'tauri'}/{version}/battlecode25-client-{client_platform}-{'electron' if properties['compatibility_client'] else 'tauri'}-{version}.zip",
     "get_filename": lambda version: "battlecode25-client.zip",
     "install": install_client
 }
@@ -120,18 +120,28 @@ def load_properties():
 
 
 def download_file(url, output_name):
+    # Create temp directory
+    output_path = f".temp/{output_name}"
+    if not os.path.exists(".temp"):
+        os.mkdir(".temp")
+    elif os.path.exists(output_path):
+        os.remove(output_path)
+
     if properties["on_saturn"]:
         # GCS download
 
-        url = f"gcs://mitbattlecode-releases/maven/{url}"
+        from google.cloud import storage
 
-        # TODO
-        raise NotImplementedError()
+        client = storage.Client()
+        bucket = client.bucket("mitbattlecode-releases")
+        blob = bucket.blob(url)
+        blob.download_to_filename(output_path)
 
+        print(f"File downloaded with GCS to {output_path}")
     else:
         # Standard HTTP download
 
-        url = f"https://releases.battlecode.org/maven/{url}"
+        url = f"https://releases.battlecode.org/{url}"
 
         def reporthook(downloaded, total_size):
             if total_size > 0:
@@ -145,13 +155,6 @@ def download_file(url, output_name):
                 # Total size unknown
                 sys.stdout.write(f'\rDownloaded {downloaded / (1024 ** 2):.2f} MB')
                 sys.stdout.flush()
-
-        # Create temp directory
-        output_path = f".temp/{output_name}"
-        if not os.path.exists(".temp"):
-            os.mkdir(".temp")
-        elif os.path.exists(output_path):
-            os.remove(output_path)
 
         req = urllib.request.Request(url)
         if properties["gcloud_token"] is not None:
@@ -191,6 +194,7 @@ def get_server_version(ver_data) -> str | None:
     """Fetch the latest version from the server"""
     url = "https://api.battlecode.org/api/episode/e/bc25python/?format=json"
     #url = "https://api.battlecode.org/api/episode/e/bc24/?format=json"
+    return "0.0.1"
     try:
         with urllib.request.urlopen(url) as response:
             parsed = json.loads(response.read())
