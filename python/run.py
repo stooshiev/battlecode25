@@ -9,7 +9,6 @@ import argparse
 import platform
 import subprocess
 from pathlib import Path
-from distutils.util import strtobool
 
 
 # Check python version
@@ -37,6 +36,17 @@ properties = {
     "on_saturn": False,
     "gcloud_token": None
 }
+
+
+def str_to_bool(value: str) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value.lower() in {'true', 'yes', 'y', '1'}:
+        return True
+    elif value.lower() in {'false', 'no', 'n', '0'}:
+        return False
+    else:
+        raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
 
 
 class ZipFileWithPermissions(zipfile.ZipFile):
@@ -422,19 +432,19 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--debug",
-        type=lambda x: bool(strtobool(x)),
+        type=str_to_bool,
         default=True,
         help="Enable logging within the bot"
     )
     parser.add_argument(
         "--show-indicators",
-        type=lambda x: bool(strtobool(x)),
+        type=str_to_bool,
         default=True,
         help="Enable showing debug indicators for robots"
     )
     parser.add_argument(
         "--skip-check",
-        type=lambda x: bool(strtobool(x)),
+        type=str_to_bool,
         default=False,
         help="Skip the version check when running a match",
     )
@@ -452,7 +462,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--on-saturn",
-        type=lambda x: bool(strtobool(x)),
+        type=str_to_bool,
         default=False,
         help="Dev use only. Indicates when running on the server",
     )
