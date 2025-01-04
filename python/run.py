@@ -8,6 +8,7 @@ import zipfile
 import argparse
 import platform
 import subprocess
+import urllib.request
 from pathlib import Path
 
 
@@ -219,6 +220,7 @@ def check_new_version(ver_data) -> str | None:
     """Check for a newer version."""
     latest_version = get_server_version(ver_data)
     if latest_version is None:
+        print("WARNING: unable to get the latest version from the server")
         return None
     current_version = get_local_version(ver_data)
     if current_version != latest_version:
@@ -269,6 +271,14 @@ def verify_package(player_dir):
         print("Missing 'def turn()' main function in bot.py!")
         return False
 
+    try:
+        # Try compiling the bot
+        from battlecode25 import CodeContainer
+        container = CodeContainer.from_directory(player_dir)
+    except Exception as e:
+        print(f"Compile failed! {e}")
+        return False
+
     return True
 
 
@@ -311,6 +321,19 @@ def run_game(args):
 
 # ====== TASKS =======
 
+
+def task_test(args):
+    """Run all test scripts."""
+    test_files = list_python_files(TEST_DIR)
+    if not test_files:
+        print("No tests found.")
+        return
+    print(f"Running tests in: {TEST_DIR}")
+    for test in test_files:
+        print(f"Running test: {test}")
+        run_script(test)
+
+
 def task_version(args):
     """Output the current version."""
     for ver_data in [ENGINE_VER_DATA, CLIENT_VER_DATA]:
@@ -331,7 +354,8 @@ def task_check_version(args):
 def task_update(args):
     """Update all packages."""
     run_update(ENGINE_VER_DATA)
-    run_update(CLIENT_VER_DATA)
+    if not args.on_saturn:
+        run_update(CLIENT_VER_DATA)
 
 
 def task_verify(args):
@@ -343,16 +367,17 @@ def task_verify(args):
         raise RuntimeError("Player is not valid!")
 
 
-def task_test(args):
-    """Run all test scripts."""
-    test_files = list_python_files(TEST_DIR)
-    if not test_files:
-        print("No tests found.")
-        return
-    print(f"Running tests in: {TEST_DIR}")
-    for test in test_files:
-        print(f"Running test: {test}")
-        run_script(test)
+def task_zip_submission(args):
+    """Zip your code into a zipfile to be submitted online."""
+    with zipfile.ZipFile("submission.zip", 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk("src"):
+            relative_root = os.path.relpath(root, "src")
+            for file in files:
+                if not file.endswith(".py"):
+                    continue
+                file_path = os.path.join(root, file)
+                arcname = os.path.join(relative_root, file) if relative_root != '.' else file
+                zipf.write(file_path, arcname)
 
 
 def task_run(args):
@@ -377,6 +402,7 @@ if __name__ == "__main__":
         "check_version": task_check_version,
         "update": task_update,
         "verify": task_verify,
+        "zip_submission": task_zip_submission,
         "run": task_run
     }
 
