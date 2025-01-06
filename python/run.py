@@ -322,6 +322,11 @@ def run_game(args):
 # ====== TASKS =======
 
 
+def task_tasks(args):
+    """Print all valid tasks."""
+    print("Available tasks:", ", ".join(tasks.keys()))
+
+
 def task_test(args):
     """Run all test scripts."""
     test_files = list_python_files(TEST_DIR)
@@ -397,6 +402,7 @@ def task_run(args):
 # Command-line interface
 if __name__ == "__main__":
     tasks = {
+        "tasks": task_tasks,
         "test": task_test,
         "version": task_version,
         "check_version": task_check_version,
