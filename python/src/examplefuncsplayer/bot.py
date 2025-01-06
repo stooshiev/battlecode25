@@ -63,6 +63,8 @@ def run_tower():
     for m in messages:
         log(f"Tower received message: '#{m.get_sender_id()}: {m.get_bytes()}'")
 
+    # TODO: can we attack other bots?
+
 
 def run_soldier():
     # Sense information about all visible nearby tiles.

@@ -132,6 +132,8 @@ public class RobotPlayer {
         for (Message m : messages) {
             System.out.println("Tower received message: '#" + m.getSenderID() + " " + m.getBytes());
         }
+
+        // TODO: can we attack other bots?
     }
 
 
