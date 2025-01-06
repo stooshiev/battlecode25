@@ -314,7 +314,8 @@ def run_game(args):
         out_dir=args.out_file_dir,
         out_name=args.out_file_name,
         show_indicators=args.show_indicators,
-        debug=args.debug
+        debug=args.debug,
+        instrument=args.instrument
     )
     run_game(game_args)
 
@@ -467,6 +468,12 @@ if __name__ == "__main__":
         type=str_to_bool,
         default=True,
         help="Enable logging within the bot"
+    )
+    parser.add_argument(
+        "--instrument",
+        type=str_to_bool,
+        default=True,
+        help="Whether or not to disable instrumenting for debug purposes",
     )
     parser.add_argument(
         "--show-indicators",
