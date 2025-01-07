@@ -12,3 +12,5 @@ if you encounter any issues or have any feedback!**
    subdirectory and follow the README file included there.
 - `python/`
    Scaffold for the Python engine. If Python is your preferred language, please use this subdirectory and follow the README file included there.
+
+Keep in mind, Python is **EXPERIMENTAL**, and not eligible to participate against other java bots. Please see the website for more details.
