@@ -5,5 +5,5 @@
 **/matches
 **/client
 /.settings
-java/client_version.txt
-java/engine_version.txt
+java/clientversion.txt
+java/serverversion.txt

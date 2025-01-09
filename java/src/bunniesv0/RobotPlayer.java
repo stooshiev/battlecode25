@@ -75,7 +75,7 @@ public class RobotPlayer {
                 switch (rc.getType()){
                     case SOLDIER: runSoldier(rc); break; 
                     case MOPPER: runMopper(rc); break;
-                    case SPLASHER: break; // Consider upgrading examplefuncsplayer to use splashers!
+                    case SPLASHER: runSplasher(rc); // Consider upgrading examplefuncsplayer to use splashers!
                     default: runTower(rc); break;
                     }
                 }
@@ -203,6 +203,38 @@ public class RobotPlayer {
         }
         // We can also move our code into different methods or classes to better organize it!
         updateEnemyRobots(rc);
+    }
+
+    /*
+     * Splasher attacks immediately if it sees an empty or enemy tile.
+     * It moves in a straight line until it can no longer go in that direction,
+     * then picks a new direction to move in.
+     */
+    private static Direction splasherDirection = null;
+    public static void runSplasher(RobotController rc) throws GameActionException {
+        MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
+        MapInfo enemyTile = null;
+        for (MapInfo current : nearbyTiles) {
+            if (current.getPaint().equals(PaintType.EMPTY) ||
+                    current.getPaint().equals(PaintType.ENEMY_PRIMARY) ||
+                    current.getPaint().equals(PaintType.ENEMY_SECONDARY)) {
+                enemyTile = current;
+                break;
+            }
+        }
+        if (enemyTile != null) {
+            if (rc.canAttack(enemyTile.getMapLocation())) {
+                rc.attack(enemyTile.getMapLocation());
+            }
+        }
+        if (splasherDirection == null) {
+            splasherDirection = directions[rng.nextInt(directions.length)];
+        }
+        if (rc.canMove(splasherDirection)) {
+            rc.move(splasherDirection);
+        } else {
+            splasherDirection = null;
+        }
     }
 
     public static void updateEnemyRobots(RobotController rc) throws GameActionException{
