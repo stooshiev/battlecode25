@@ -60,9 +60,8 @@ public class Tower extends RobotPlayer {
             rc.setIndicatorString("BUILT A MOPPER");
         }
         else if (robotType == 2 && rc.canBuildRobot(UnitType.SPLASHER, nextLoc)){
-            // rc.buildRobot(UnitType.SPLASHER, nextLoc);
-            // System.out.println("BUILT A SPLASHER");
-            rc.setIndicatorString("SPLASHER NOT IMPLEMENTED YET");
+			rc.buildRobot(UnitType.SPLASHER, nextLoc);
+            System.out.println("BUILT A SPLASHER");
         }
 	}
 	
