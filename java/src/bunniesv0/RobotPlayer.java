@@ -212,7 +212,8 @@ public class RobotPlayer {
      */
     private static Direction splasherDirection = null;
     public static void runSplasher(RobotController rc) throws GameActionException {
-        MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
+        MapInfo[] nearbyTiles = rc.senseNearbyMapInfos(4);
+
         MapInfo enemyTile = null;
         for (MapInfo current : nearbyTiles) {
             if (current.getPaint().equals(PaintType.EMPTY) ||
@@ -224,7 +225,11 @@ public class RobotPlayer {
         }
         if (enemyTile != null) {
             if (rc.canAttack(enemyTile.getMapLocation())) {
-                rc.attack(enemyTile.getMapLocation());
+                try {
+                    rc.attack(enemyTile.getMapLocation());
+                } catch (GameActionException gae) {
+                    gae.printStackTrace();
+                }
             }
         }
         if (splasherDirection == null) {
