@@ -194,3 +194,7 @@ fabric.properties
 
 java/client_version.txt
 java/engine_version.txt
+
+.idea/misc.xml
+gradle.properties
+.gitignore
