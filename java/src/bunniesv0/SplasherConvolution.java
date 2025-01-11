@@ -32,7 +32,8 @@ public class SplasherConvolution {
         for (MapInfo tile : nearbyTiles) {
             if (Math.abs(tile.getMapLocation().x - rc.getLocation().x) <= radius &&
                     Math.abs(tile.getMapLocation().y - rc.getLocation().y) <= radius) {
-                grid[tile.getMapLocation().x - rc.getLocation().x][tile.getMapLocation().y - rc.getLocation().y] =
+                grid[tile.getMapLocation().x - rc.getLocation().x + radius]
+                        [tile.getMapLocation().y - rc.getLocation().y + radius] =
                         tile;
             }
         }
@@ -53,7 +54,9 @@ public class SplasherConvolution {
         for (int i = 0; i < radius * 2 + 1; i++) {
             for (int j = 0; j < radius * 2 + 1; j++) {
                 MapInfo tile = arrangedTiles[i][j];
-                if (tile.getPaint().isEnemy()) {
+                if (tile == null) {
+                    nearbyColorMatrix[i][j] = 0.0f;
+                } else if (tile.getPaint().isEnemy()) {
                     // it is good for splashers to paint those tiles
                     nearbyColorMatrix[i][j] = 1.0f;
                 } else if (tile.getPaint() == PaintType.EMPTY) {
@@ -136,8 +139,9 @@ public class SplasherConvolution {
                     rc.attack(mapInfoGrid[maxi][maxj].getMapLocation());
                     return true;
                 } catch (GameActionException gae) {
+                    System.out.println("Exception in SplasherConvolution.attackBest()");
                     System.out.println(gae.getMessage());
-                    System.out.println(gae.getStackTrace());
+                    gae.printStackTrace();
                 }
             }
             // if that location couldn't be attacked, set it to false

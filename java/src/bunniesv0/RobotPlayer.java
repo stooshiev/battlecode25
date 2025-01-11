@@ -212,26 +212,12 @@ public class RobotPlayer {
      */
     private static Direction splasherDirection = null;
     public static void runSplasher(RobotController rc) throws GameActionException {
-        MapInfo[] nearbyTiles = rc.senseNearbyMapInfos(4);
+        MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
 
-        MapInfo enemyTile = null;
-        for (MapInfo current : nearbyTiles) {
-            if (current.getPaint().equals(PaintType.EMPTY) ||
-                    current.getPaint().equals(PaintType.ENEMY_PRIMARY) ||
-                    current.getPaint().equals(PaintType.ENEMY_SECONDARY)) {
-                enemyTile = current;
-                break;
-            }
-        }
-        if (enemyTile != null) {
-            if (rc.canAttack(enemyTile.getMapLocation())) {
-                try {
-                    rc.attack(enemyTile.getMapLocation());
-                } catch (GameActionException gae) {
-                    gae.printStackTrace();
-                }
-            }
-        }
+        float[][] affinities = SplasherConvolution.attackAffinities(rc, nearbyTiles);
+        float[][] attackValues = SplasherConvolution.convolve(affinities);
+        SplasherConvolution.attackBest(rc, nearbyTiles, attackValues, 2.0f);
+
         if (splasherDirection == null) {
             splasherDirection = directions[rng.nextInt(directions.length)];
         }
