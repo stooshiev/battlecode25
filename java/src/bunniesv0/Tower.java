@@ -4,6 +4,22 @@ import battlecode.common.*;
 
 public class Tower extends RobotPlayer {
 	
+	public static void runTurnBasedActions(RobotController rc) throws GameActionException {
+		if (getTowerLevel(rc) != 3 && rc.getMoney() >= rc.getType().getNextLevel().moneyCost + (getTowerType(rc) == "Money" ? 2 : 1) * UnitType.MOPPER.moneyCost) {
+			state = "UPGRADE_SAVING";
+			if (rc.canUpgradeTower(rc.getLocation())) {
+				rc.upgradeTower(rc.getLocation());
+				state = "DEFAULT";
+			}
+		}
+		else if (turnCount % 100 == 0 || state == "BUILD_SAVING") {
+			state = "BUILD_SAVING";
+			if (rc.getMoney() >= 1300) {
+				state = "DEFAULT";
+			}
+		}
+	}
+	
 	public static void attackPattern0(RobotController rc, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) throws GameActionException {
 		int rcAttackStrength = rc.getType().attackStrength;
 		
@@ -41,14 +57,14 @@ public class Tower extends RobotPlayer {
 	            rc.setIndicatorString("BUILT A MOPPER");
 			}
 		}
+		
 	}
 	
-	public static void createRandomRobot(RobotController rc) throws GameActionException {
+	public static RobotInfo createRobot(RobotController rc, int robotType) throws GameActionException {
 		// Pick a direction to build in.
         Direction dir = directions[rng.nextInt(directions.length)];
         MapLocation nextLoc = rc.getLocation().add(dir);
-        // Pick a random robot type to build.
-        int robotType = rng.nextInt(3);
+        // Pick a robot type to build.
         if (robotType == 0 && rc.canBuildRobot(UnitType.SOLDIER, nextLoc)){
             rc.buildRobot(UnitType.SOLDIER, nextLoc);
             System.out.println("BUILT A SOLDIER");
@@ -60,10 +76,75 @@ public class Tower extends RobotPlayer {
             rc.setIndicatorString("BUILT A MOPPER");
         }
         else if (robotType == 2 && rc.canBuildRobot(UnitType.SPLASHER, nextLoc)){
-            // rc.buildRobot(UnitType.SPLASHER, nextLoc);
-            // System.out.println("BUILT A SPLASHER");
-            rc.setIndicatorString("SPLASHER NOT IMPLEMENTED YET");
+            rc.buildRobot(UnitType.SPLASHER, nextLoc);
+            System.out.println("BUILT A SPLASHER");
+            rc.setIndicatorString("BUILT A SPLASHER");
         }
+        return rc.senseRobotAtLocation(nextLoc);
+	}
+	
+	public static void createRobot(RobotController rc) throws GameActionException {
+		createRobot(rc, rng.nextInt(3));
+	}
+	
+	public static void actOnMessages(RobotController rc, UnpackedMessage[] unpackedMessages, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) throws GameActionException {
+		for (UnpackedMessage m : unpackedMessages) {
+			switch (m.command) {
+				case 0: break; // Save Chips
+				case 1: break; // Send Robots
+				case 2: break; // Send Soldiers
+				case 3: sendMoppers(rc, m.locInfo, nearbyTiles, nearbyRobots); break; // Send Moppers
+				case 4: break; // Send Splashers
+			}
+		}
+	}
+	
+	public static void sendMoppers(RobotController rc, MapLocation target, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) throws GameActionException {
+		boolean nearbyRobot = false;
+		for (RobotInfo robot : nearbyRobots) {
+			if (robot.getTeam() == rc.getTeam() && robot.getType() == UnitType.MOPPER) {
+				UnpackedMessage.encodeAndSend(rc, robot.getLocation(), "Go To", target);
+				nearbyRobot = true;
+				break;
+			}
+		}
+		if (nearbyRobot == false) {
+			RobotInfo newRobotInfo = createRobot(rc, 1);
+			UnpackedMessage.encodeAndSend(rc, newRobotInfo.getLocation(), "Go To", target);
+		}
+
+	}
+	
+	public static String getTowerType(RobotController rc) throws GameActionException {
+		UnitType towerType = rc.getType();
+		if (towerType == UnitType.LEVEL_ONE_PAINT_TOWER || towerType == UnitType.LEVEL_TWO_PAINT_TOWER || towerType == UnitType.LEVEL_THREE_PAINT_TOWER) {
+			return "Paint";
+		}
+		else if (towerType == UnitType.LEVEL_ONE_MONEY_TOWER || towerType == UnitType.LEVEL_TWO_MONEY_TOWER || towerType == UnitType.LEVEL_THREE_MONEY_TOWER) {
+			return "Money";
+		}
+		else if (towerType == UnitType.LEVEL_ONE_DEFENSE_TOWER || towerType == UnitType.LEVEL_TWO_DEFENSE_TOWER || towerType == UnitType.LEVEL_THREE_DEFENSE_TOWER) {
+			return "Defense";
+		}
+		else {
+			return "Bunny";
+		}
+	}
+	
+	public static int getTowerLevel(RobotController rc) throws GameActionException {
+		UnitType towerType = rc.getType();
+		if (towerType == UnitType.LEVEL_ONE_PAINT_TOWER || towerType == UnitType.LEVEL_ONE_MONEY_TOWER || towerType == UnitType.LEVEL_ONE_DEFENSE_TOWER) {
+			return 1;
+		}
+		else if (towerType == UnitType.LEVEL_TWO_PAINT_TOWER || towerType == UnitType.LEVEL_TWO_MONEY_TOWER || towerType == UnitType.LEVEL_TWO_DEFENSE_TOWER) {
+			return 2;
+		}
+		else if (towerType == UnitType.LEVEL_THREE_PAINT_TOWER || towerType == UnitType.LEVEL_THREE_MONEY_TOWER || towerType == UnitType.LEVEL_THREE_DEFENSE_TOWER) {
+			return 3;
+		}
+		else {
+			return -1;
+		}
 	}
 	
 }

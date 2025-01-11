@@ -22,6 +22,10 @@ public class RobotPlayer {
      * these variables are static, in Battlecode they aren't actually shared between your robots.
      */
     static int turnCount = 0;
+    
+    static int creationTurn = 0;
+    
+    static String state = "DEFAULT";
 
     /**
      * A random number generator.
@@ -58,6 +62,8 @@ public class RobotPlayer {
 
         // You can also use indicators to save debug notes in replays.
         rc.setIndicatorString("Hello world!");
+        
+        creationTurn = turnCount;
 
         while (true) {
             // This code runs during the entire lifespan of the robot, which is why it is in an infinite
@@ -112,17 +118,21 @@ public class RobotPlayer {
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
         
+        // Planned turn-based actions
+        Tower.runTurnBasedActions(rc);
+        
         // Read incoming messages
-        Message[] messages = rc.readMessages(-1);
-        for (Message m : messages) {
-            System.out.println("Tower received message: '#" + m.getSenderID() + " " + m.getBytes());
-        }
+        UnpackedMessage[] unpackedMessages = UnpackedMessage.receiveAndDecode(rc);
+        
+        Tower.actOnMessages(rc, unpackedMessages, nearbyTiles, nearbyRobots);
         
         Tower.attackPattern0(rc, nearbyTiles, nearbyRobots);
     	
-    	if (rc.getPaint() >= 400 && rc.getMoney() >= 700) {
-        	Tower.createRandomRobot(rc);
-    	}
+        if (state == "DEFAULT") { // Run all the default behavior
+    		if (Tower.getTowerType(rc) == "Paint" && rc.getPaint() >= 400 && rc.getMoney() >= 700) {
+    			Tower.createRobot(rc);
+    		}
+        }
         
     }
 
