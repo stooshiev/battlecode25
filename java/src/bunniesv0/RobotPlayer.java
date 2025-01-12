@@ -216,7 +216,7 @@ public class RobotPlayer {
 
         float[][] affinities = SplasherConvolution.attackAffinities(rc, nearbyTiles);
         float[][] attackValues = SplasherConvolution.convolve(affinities);
-        SplasherConvolution.attackBest(rc, nearbyTiles, attackValues, 2.0f);
+        SplasherConvolution.attackBest(rc, nearbyTiles, attackValues, 6.0f);
 
         if (splasherDirection == null) {
             splasherDirection = directions[rng.nextInt(directions.length)];

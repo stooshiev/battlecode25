@@ -134,7 +134,7 @@ public class SplasherConvolution {
                 // no good attack spot found
                 return false;
             }
-            if (rc.canAttack(mapInfoGrid[maxi][maxj].getMapLocation())) {
+            if (mapInfoGrid[maxi][maxj] != null && rc.canAttack(mapInfoGrid[maxi][maxj].getMapLocation())) {
                 try {
                     rc.attack(mapInfoGrid[maxi][maxj].getMapLocation());
                     return true;
