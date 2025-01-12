@@ -1,4 +1,4 @@
-package bunniesv0;
+package testfuncsplayer;
 
 import battlecode.common.*;
 
