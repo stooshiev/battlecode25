@@ -29,7 +29,8 @@ public class RobotPlayer {
      * import at the top of this file. Here, we *seed* the RNG with a constant number (6147); this makes sure
      * we get the same sequence of numbers every time this code is run. This is very useful for debugging!
      */
-    static final Random rng = new Random(6147);
+    static final long RANDOM_SEED = 6147;
+    static final Random rng = new Random(6162);
 
     /** Array containing all the possible movement directions. */
     static final Direction[] directions = {
@@ -107,7 +108,7 @@ public class RobotPlayer {
      * Run a single turn for towers.
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
-    public static void runTower(RobotController rc) throws GameActionException{
+    static void runTower(RobotController rc) throws GameActionException{
     	// Sense information about all visible nearby tiles and robots.
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
@@ -131,7 +132,7 @@ public class RobotPlayer {
      * Run a single turn for a Soldier.
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
-    public static void runSoldier(RobotController rc) throws GameActionException{
+    static void runSoldier(RobotController rc) throws GameActionException{
         // Sense information about all visible nearby tiles.
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
         // Search for a nearby ruin to complete.
@@ -187,7 +188,7 @@ public class RobotPlayer {
      * Run a single turn for a Mopper.
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
-    public static void runMopper(RobotController rc) throws GameActionException{
+    static void runMopper(RobotController rc) throws GameActionException{
         // Move and attack randomly.
         Direction dir = directions[rng.nextInt(directions.length)];
         MapLocation nextLoc = rc.getLocation().add(dir);
@@ -210,13 +211,21 @@ public class RobotPlayer {
      * It moves in a straight line until it can no longer go in that direction,
      * then picks a new direction to move in.
      */
-    private static Direction splasherDirection = null;
-    public static void runSplasher(RobotController rc) throws GameActionException {
+    static Direction splasherDirection = null;
+    static void runSplasher(RobotController rc) throws GameActionException {
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
+        RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
+        int markRuinStatus = MarkRuin.markIfFound(rc, nearbyTiles, nearbyRobots,
+                MarkRuin.INITIAL_TOWERS[rng.nextInt(MarkRuin.INITIAL_TOWERS.length - 1)]);
 
         float[][] affinities = SplasherConvolution.attackAffinities(rc, nearbyTiles);
         float[][] attackValues = SplasherConvolution.convolve(affinities);
         SplasherConvolution.attackBest(rc, nearbyTiles, attackValues, 6.0f);
+
+        if (markRuinStatus == 2 || markRuinStatus == 3) {
+            // don't move normally if we're making progress towards marking a pattern
+            return;
+        }
 
         if (splasherDirection == null) {
             splasherDirection = directions[rng.nextInt(directions.length)];
@@ -228,7 +237,7 @@ public class RobotPlayer {
         }
     }
 
-    public static void updateEnemyRobots(RobotController rc) throws GameActionException{
+    static void updateEnemyRobots(RobotController rc) throws GameActionException{
         // Sensing methods can be passed in a radius of -1 to automatically 
         // use the largest possible value.
         RobotInfo[] enemyRobots = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
