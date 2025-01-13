@@ -257,6 +257,16 @@ public class RobotPlayer {
                 rc.setTimelineMarker("Tower built", 0, 255, 0);
                 System.out.println("Built a tower at " + targetLoc + "!");
             }
+            if (rc.canCompleteTowerPattern(UnitType.LEVEL_ONE_MONEY_TOWER, targetLoc)){
+                rc.completeTowerPattern(UnitType.LEVEL_ONE_MONEY_TOWER, targetLoc);
+                rc.setTimelineMarker("Tower built", 0, 255, 0);
+                System.out.println("Built a tower at " + targetLoc + "!");
+            }
+            if (rc.canCompleteTowerPattern(UnitType.LEVEL_ONE_DEFENSE_TOWER, targetLoc)){
+                rc.completeTowerPattern(UnitType.LEVEL_ONE_DEFENSE_TOWER, targetLoc);
+                rc.setTimelineMarker("Tower built", 0, 255, 0);
+                System.out.println("Built a tower at " + targetLoc + "!");
+            }
             
             if (isMarking) {
 		        
