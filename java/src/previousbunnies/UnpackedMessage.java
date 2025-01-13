@@ -1,4 +1,4 @@
-package bunniesv0;
+package previousbunnies;
 
 import battlecode.common.*;
 import java.util.*;
@@ -28,8 +28,7 @@ public class UnpackedMessage extends RobotPlayer {
         );
 	
 	public static Map<String, Integer> towerCommandMap = Map.ofEntries(
-			Map.entry("Go To", 0), 
-			Map.entry("Take Paint", 1)
+			Map.entry("Go To", 0)
         );
 	
 	public static void encodeAndSend(RobotController rc, MapLocation target, String command, MapLocation locInfo, int turnInfo) throws GameActionException {

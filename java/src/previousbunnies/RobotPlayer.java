@@ -1,4 +1,4 @@
-package bunniesv0;
+package previousbunnies;
 
 import battlecode.common.*;
 
@@ -129,9 +129,6 @@ public class RobotPlayer {
         Tower.attackPattern0(rc, nearbyTiles, nearbyRobots);
     	
         if (state == "DEFAULT") { // Run all the default behavior
-        	if (Tower.getTowerType(rc) == "Paint" && rc.getPaint() >= 450) {
-    			Tower.refillRobots(rc, nearbyRobots);
-    		}
     		if (Tower.getTowerType(rc) == "Paint" && rc.getPaint() >= 400 && rc.getMoney() >= 700) {
     			Tower.createRobot(rc);
     		}

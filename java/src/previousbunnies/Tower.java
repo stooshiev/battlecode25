@@ -1,4 +1,4 @@
-package bunniesv0;
+package previousbunnies;
 
 import battlecode.common.*;
 
@@ -76,31 +76,18 @@ public class Tower extends RobotPlayer {
             rc.setIndicatorString("BUILT A MOPPER");
         }
         else if (robotType == 2 && rc.canBuildRobot(UnitType.SPLASHER, nextLoc)){
-            rc.buildRobot(UnitType.SPLASHER, nextLoc);
-            System.out.println("BUILT A SPLASHER");
-            rc.setIndicatorString("BUILT A SPLASHER");
+//            rc.buildRobot(UnitType.SPLASHER, nextLoc);
+//            System.out.println("BUILT A SPLASHER");
+//            rc.setIndicatorString("BUILT A SPLASHER");
+        	rc.buildRobot(UnitType.SOLDIER, nextLoc);
+            System.out.println("BUILT A SOLDIER");
+            rc.setIndicatorString("BUILT A SOLDIER");
         }
         return rc.senseRobotAtLocation(nextLoc);
 	}
 	
 	public static void createRobot(RobotController rc) throws GameActionException {
 		createRobot(rc, rng.nextInt(3));
-	}
-	
-	public static void refillRobots(RobotController rc, RobotInfo[] nearbyRobots) throws GameActionException {
-		RobotInfo targetRobot = null;
-		for (RobotInfo robot : nearbyRobots) {
-			if (rc.getLocation().isAdjacentTo(robot.location) && rc.getTeam() == rc.getTeam() && (float) robot.getPaintAmount() / robot.getType().paintCapacity <= 0.7) {
-				if (targetRobot == null) {
-					targetRobot = robot;
-				}
-				else if (targetRobot.type.paintCapacity - targetRobot.paintAmount <= robot.type.paintCapacity - robot.paintAmount) {
-					targetRobot = robot;
-				}
-			}
-			UnpackedMessage.encodeAndSend(rc, targetRobot.location, "Take Paint", rc.getLocation());
-		}
-		
 	}
 	
 	public static void actOnMessages(RobotController rc, UnpackedMessage[] unpackedMessages, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) throws GameActionException {
