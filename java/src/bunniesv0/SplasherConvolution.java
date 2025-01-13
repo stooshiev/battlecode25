@@ -72,7 +72,7 @@ public class SplasherConvolution {
                     System.out.println("Splasher encountered unknown tile please tell what it is");
                     System.out.println(tile.getMapLocation());
 //                    try {
-                        rc.setIndicatorDot(tile.getMapLocation(), 0, 255, 0);
+//                        rc.setIndicatorDot(tile.getMapLocation(), 0, 255, 0);
 //                    } catch (GameActionException e) {
 //                        System.out.println("Couldn't place an indicator dot sorry");
 //                    }
