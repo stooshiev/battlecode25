@@ -82,7 +82,7 @@ public class RobotPlayer {
                 switch (rc.getType()){
                     case SOLDIER: runSoldier(rc); break; 
                     case MOPPER: runMopper(rc); break;
-                    case SPLASHER: runSplasher(rc); // Consider upgrading examplefuncsplayer to use splashers!
+                    case SPLASHER: runSplasher(rc); break; // Consider upgrading examplefuncsplayer to use splashers!
                     default: runTower(rc); break;
                     }
                 }

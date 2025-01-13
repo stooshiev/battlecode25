@@ -100,7 +100,9 @@ class Tower extends RobotPlayer {
 					targetRobot = robot;
 				}
 			}
-			UnpackedMessage.encodeAndSend(rc, targetRobot.location, UnpackedMessage.TAKE_PAINT, rc.getLocation());
+			if (targetRobot != null) {
+				UnpackedMessage.encodeAndSend(rc, targetRobot.location, UnpackedMessage.TAKE_PAINT, rc.getLocation());
+			}
 		}
 		
 	}
