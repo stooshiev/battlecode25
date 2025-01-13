@@ -240,6 +240,7 @@ public class RobotPlayer {
      * then picks a new direction to move in.
      */
     static Direction splasherDirection = null;
+    static float threshold = 9.0f;
     static void runSplasher(RobotController rc) throws GameActionException {
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
@@ -247,8 +248,13 @@ public class RobotPlayer {
                 MarkRuin.INITIAL_TOWERS[rng.nextInt(MarkRuin.INITIAL_TOWERS.length - 1)]);
 
         float[][] affinities = SplasherConvolution.attackAffinities(rc, nearbyTiles);
-        float[][] attackValues = SplasherConvolution.convolve(affinities);
-        SplasherConvolution.attackBest(rc, nearbyTiles, attackValues, 6.0f);
+        float[][] attackValues = SplasherConvolution.convolve3(affinities);
+        boolean attacked = SplasherConvolution.attackBest(rc, nearbyTiles, attackValues, threshold);
+        if (attacked) {
+            threshold = 7.5f;
+        } else if (threshold < 3.0f) {
+            threshold -= 0.1f;
+        }
 
         if (markRuinStatus == 2 || markRuinStatus == 3) {
             // don't move normally if we're making progress towards marking a pattern
