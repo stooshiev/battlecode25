@@ -51,5 +51,3 @@ Look at `gradle.properties` for project-wide configuration.
 
 If you are having any problems with the default client, please report to teh devs and
 feel free to set the `compatibilityClient` configuration to `true` to download a different version of the client.
-
-I'm Steven and I've added a new line here.
