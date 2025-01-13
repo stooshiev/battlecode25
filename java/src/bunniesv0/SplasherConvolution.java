@@ -62,9 +62,10 @@ public class SplasherConvolution {
                     nearbyColorMatrix[i][j] = tile.getMark().isSecondary() ? -2.0f : -1.0f;
                 } else if (tile.isWall() || tile.hasRuin()) { // ruin or wall
                     nearbyColorMatrix[i][j] = -1.0f;
-                } else if (tile.getPaint() == PaintType.ENEMY_PRIMARY || tile.getPaint() == PaintType.ENEMY_SECONDARY) {
-                    // enemy tile
-                    nearbyColorMatrix[i][j] = 1.0f;
+                } else if (tile.getPaint().equals(PaintType.ENEMY_PRIMARY) ||
+                        tile.getPaint().equals(PaintType.ENEMY_SECONDARY)) {
+                    // enemy tile is the best one to splat
+                    nearbyColorMatrix[i][j] = 2.0f;
                 } else if (tile.getPaint() == PaintType.EMPTY) {
                     // paint empty tiles
                     nearbyColorMatrix[i][j] = 1.2f;
