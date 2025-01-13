@@ -234,7 +234,7 @@ public class RobotPlayer {
 //        Direction dir = directions[rng.nextInt(directions.length)];
     	Direction dir = prevDir;
         
-    	if (rng.nextInt(10) == 0) { //random chance (1/10 per turn) to turn left or right
+    	if (rng.nextInt(10 + rc.getRoundNum()/100) == 0) { //random chance (lower later into the game) to turn left or right; encourages exploration
     		
     		int directionDecider = rng.nextInt(2); 
     		
@@ -283,7 +283,7 @@ public class RobotPlayer {
         }*/
     	
         MapLocation nextLocation = currentLocation.add(dir);
-        Direction attackDirection = nearbyEnemyPaintDirection(rc, 1);
+        Direction attackDirection = nearbyEnemyPaintDirection(rc, 2);
         //Once movement direction is chosen, make sure that spot is NOT an enemy paint tile, if it is:
         try {
 	        if (rc.senseMapInfo(nextLocation).getPaint().isEnemy() && rc.canAttack(nextLocation)){
@@ -300,8 +300,9 @@ public class RobotPlayer {
 	        	}
 	        }
         }
-        catch (GameActionException e) {
-        	System.out.println("Location causing the problem: " + nextLocation.toString());
+        //happens when robot attempts to sense map info on a tile out of bounds
+        catch (GameActionException e) { 
+//        	System.out.println("Location causing the problem: " + nextLocation.toString());
         	//if there is enemy paint robot can mop; center means no nearby enemy paint that can be attacked, run this part again bc exception caused it to not run
         	if (!attackDirection.equals(Direction.CENTER)) {
 	        	dir = Direction.CENTER;
@@ -316,13 +317,31 @@ public class RobotPlayer {
         
         RobotInfo[] allSeenEnemyRobots = findEnemyRobots(rc);
         RobotInfo[] allSeenFriendlyRobots = findFriendlyRobots(rc);
+        Direction paintTowerDir = dir; //direction of nearest paint tower; default = dir if the following if statement is not satisfied
+        boolean isLowOnPaint = rc.getPaint() < 50; //the threshold 50 should be changed to an adjustable variable 
+        boolean isTowerAdjacent = false; //only true when adjacent to paint tower and low on paint bc otherwise it will not update
         //low on paint or too many nearby enemies or low on health
-    	if (rc.getPaint() < 50 || allSeenEnemyRobots.length > allSeenFriendlyRobots.length + 2 || rc.getHealth() < 20) { //retreat case
+    	if (isLowOnPaint || allSeenEnemyRobots.length > allSeenFriendlyRobots.length + 2 || rc.getHealth() < 20) { //retreat case
     		MapLocation nearestPaintTowerLoc = findNearestStructure(rc, 2);
-    		dir = currentLocation.directionTo(nearestPaintTowerLoc);
-//    		System.out.println("I AM TRYING TO RETURN TO PAINT TOWER, DIRECTION: " + dir.toString());
+    		paintTowerDir = currentLocation.directionTo(nearestPaintTowerLoc);
+    		dir = paintTowerDir;
+    		isTowerAdjacent = currentLocation.add(paintTowerDir).equals(nearestPaintTowerLoc); 
+    		System.out.println("I AM TRYING TO RETURN TO PAINT TOWER, DIRECTION: " + paintTowerDir.toString() + " IS TOWER ADJACENT: " + isTowerAdjacent);
     	}
     	
+    	//Reupdate nextLocation in case direction was changed
+        nextLocation = currentLocation.add(dir);
+        
+        //if there is adjacent friendly paint tiles in the direction of travel, prefer using them
+    	if (!rc.senseMapInfo(nextLocation).getPaint().isAlly()) {
+    		if (rc.senseMapInfo(currentLocation.add(dir.rotateLeft())).getPaint().isAlly()) {
+    			dir = dir.rotateLeft();
+    		}
+    		else if (rc.senseMapInfo(currentLocation.add(dir.rotateRight())).getPaint().isAlly()) {
+    			dir = dir.rotateRight();
+    		}
+    	}
+        
     	//Pick new direction to move if cant move in picked direction, stops after all directions are tried
     	int counter = 0;
         while (!rc.canMove(dir) && counter < 8){
@@ -335,6 +354,14 @@ public class RobotPlayer {
         	dir = Direction.CENTER;
         }
     	
+        //if low on paint and adjacent to a paint tower
+    	if (isLowOnPaint && isTowerAdjacent) {
+    		int paintInTower = rc.senseRobotAtLocation(currentLocation.add(paintTowerDir)).getPaintAmount();
+    		int transferAmount = Math.max(-paintInTower, rc.getPaint()-80); //needs to be the lesser magnitude of the two; hence the max not min
+    		System.out.println("TRANSFERING PAINT | PAINT AMOUNT: " + transferAmount);
+    		rc.transferPaint(currentLocation.add(paintTowerDir), transferAmount);
+    	}
+        
         //Reupdate nextLocation in case direction was changed
         nextLocation = currentLocation.add(dir);
         
@@ -350,6 +377,8 @@ public class RobotPlayer {
         	
         }
         
+        currentLocation = nextLocation; //update current location post moving
+        
     	RobotInfo[] enemyRobotsInSwingRadius = findEnemyRobots(rc, 1); //find all enemy robots within swinging distance
     	Direction swingDir = optimalSwing(rc, enemyRobotsInSwingRadius); //find best direction to swing
     	
@@ -358,7 +387,7 @@ public class RobotPlayer {
     		rc.mopSwing(swingDir);
     		System.out.println("I did a mop swing and actually hit an enemy...");
     	}
-    	 
+    	
         prevDir = dir; //update previous direction
         updateEnemyRobots(rc);
         updateMapMemory(rc);
