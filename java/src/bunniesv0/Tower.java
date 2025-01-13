@@ -2,7 +2,7 @@ package bunniesv0;
 
 import battlecode.common.*;
 
-public class Tower extends RobotPlayer {
+class Tower extends RobotPlayer {
 	
 	public static void runTurnBasedActions(RobotController rc) throws GameActionException {
 		if (getTowerLevel(rc) != 3 && rc.getMoney() >= rc.getType().getNextLevel().moneyCost + (getTowerType(rc) == "Money" ? 1 : 2) * UnitType.MOPPER.moneyCost) {
@@ -21,6 +21,7 @@ public class Tower extends RobotPlayer {
 	}
 	
 	public static void attackPattern0(RobotController rc, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) throws GameActionException {
+
 		int rcAttackStrength = rc.getType().attackStrength;
 		
 		// Does AoE attack no matter what.
@@ -61,6 +62,7 @@ public class Tower extends RobotPlayer {
 	}
 	
 	public static RobotInfo createRobot(RobotController rc, int robotType) throws GameActionException {
+		
 		// Pick a direction to build in.
         Direction dir = directions[rng.nextInt(directions.length)];
         MapLocation nextLoc = rc.getLocation().add(dir);
@@ -162,5 +164,4 @@ public class Tower extends RobotPlayer {
 			return -1;
 		}
 	}
-	
 }
