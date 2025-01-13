@@ -77,11 +77,11 @@ class Tower extends RobotPlayer {
             System.out.println("BUILT A MOPPER");
             rc.setIndicatorString("BUILT A MOPPER");
         }
-//        else if (robotType == 2 && rc.canBuildRobot(UnitType.SPLASHER, nextLoc)){
-//            rc.buildRobot(UnitType.SPLASHER, nextLoc);
-//            System.out.println("BUILT A SPLASHER");
-//            rc.setIndicatorString("BUILT A SPLASHER");
-//        }
+        else if (robotType == 2 && rc.canBuildRobot(UnitType.SPLASHER, nextLoc)){
+            rc.buildRobot(UnitType.SPLASHER, nextLoc);
+            System.out.println("BUILT A SPLASHER");
+            rc.setIndicatorString("BUILT A SPLASHER");
+        }
         return rc.senseRobotAtLocation(nextLoc);
 	}
 	

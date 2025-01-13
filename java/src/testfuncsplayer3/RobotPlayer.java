@@ -286,7 +286,8 @@ public class RobotPlayer {
         Direction attackDirection = nearbyEnemyPaintDirection(rc, 2);
         //Once movement direction is chosen, make sure that spot is NOT an enemy paint tile, if it is:
         try {
-	        if (rc.senseMapInfo(nextLocation).getPaint().isEnemy() && rc.canAttack(nextLocation)){
+        	PaintType nextLocPaint = rc.senseMapInfo(nextLocation).getPaint();
+	        if ((nextLocPaint.equals(PaintType.ENEMY_PRIMARY) || nextLocPaint.equals(PaintType.ENEMY_SECONDARY)) && rc.canAttack(nextLocation)){
 	            rc.attack(nextLocation);
 	            
 	        }
@@ -459,8 +460,8 @@ public class RobotPlayer {
     		MapInfo[] nearbyTiles = rc.senseNearbyMapInfos(radiussquared);
     		
     		for (MapInfo tile : nearbyTiles) {
-    		
-    			if (tile.getPaint().isEnemy()) {return rc.getLocation().directionTo(tile.getMapLocation());}
+    			
+    			if (tile.getPaint().equals(PaintType.ENEMY_PRIMARY) || tile.getPaint().equals(PaintType.ENEMY_SECONDARY)) {return rc.getLocation().directionTo(tile.getMapLocation());}
     		
     		}
     		
