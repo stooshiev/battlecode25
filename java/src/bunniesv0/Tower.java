@@ -100,7 +100,7 @@ class Tower extends RobotPlayer {
 					targetRobot = robot;
 				}
 			}
-			UnpackedMessage.encodeAndSend(rc, targetRobot.location, "Take Paint", rc.getLocation());
+			UnpackedMessage.encodeAndSend(rc, targetRobot.location, UnpackedMessage.TAKE_PAINT, rc.getLocation());
 		}
 		
 	}
@@ -121,14 +121,14 @@ class Tower extends RobotPlayer {
 		boolean nearbyRobot = false;
 		for (RobotInfo robot : nearbyRobots) {
 			if (robot.getTeam() == rc.getTeam() && robot.getType() == UnitType.MOPPER) {
-				UnpackedMessage.encodeAndSend(rc, robot.getLocation(), "Go To", target);
+				UnpackedMessage.encodeAndSend(rc, robot.getLocation(), UnpackedMessage.GO_TO, target);
 				nearbyRobot = true;
 				break;
 			}
 		}
 		if (nearbyRobot == false) {
 			RobotInfo newRobotInfo = createRobot(rc, 1);
-			UnpackedMessage.encodeAndSend(rc, newRobotInfo.getLocation(), "Go To", target);
+			UnpackedMessage.encodeAndSend(rc, newRobotInfo.getLocation(), UnpackedMessage.GO_TO, target);
 		}
 
 	}
