@@ -44,8 +44,8 @@ public class UnpackedMessage extends RobotPlayer {
 		messageContent += turnInfo; // 11 bits
 		messageContent <<= 4;
 		// 4 unused bits remain
-		System.out.println("Message int: " + messageContent);
-		System.out.printf("Sent message: command %d, x%d, y%d, turn %d, unused %d%n",
+		System.out.println("Sending message " + messageContent);
+		System.out.printf("Message content: command %d, x%d, y%d, turn %d, unused %d%n",
 				command, locInfo.x, locInfo.y, turnInfo, 0);
 		rc.sendMessage(target, messageContent);
 	}
@@ -66,7 +66,6 @@ public class UnpackedMessage extends RobotPlayer {
         	Message m = messages[count];
             bytes = m.getBytes();
         	System.out.println((rc.getType().isTowerType() ? "Tower" : "Bunny") + " received message: '#" + m.getSenderID() + " " + bytes);
-			System.out.println("Ya");
 			int unused = bytes & 0b1111;
 			bytes >>= 4;
 			int turn = bytes & 0b11111111111;
@@ -79,7 +78,7 @@ public class UnpackedMessage extends RobotPlayer {
 			bytes >>= 5;
 			// now bytes should either be all 0s (if bytes was +) or all 1s (if bytes was -)
 
-			System.out.printf("Received message: command %d, x%d, y%d, turn %d, unused %d%n",
+			System.out.printf("Message content: command %d, x%d, y%d, turn %d, unused %d%n",
 					c, x, y, turn, unused);
             unpackedMessages[count] = new UnpackedMessage(c, new MapLocation(x, y), turn, m.getRound(), m.getSenderID());
             count += 1;
