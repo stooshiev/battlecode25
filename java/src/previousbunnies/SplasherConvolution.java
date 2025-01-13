@@ -1,4 +1,4 @@
-package bunniesv0;
+package previousbunnies;
 
 import battlecode.common.*;
 
@@ -55,23 +55,17 @@ public class SplasherConvolution {
             for (int j = 0; j < radius * 2 + 1; j++) {
                 MapInfo tile = arrangedTiles[i][j];
                 if (tile == null) {
-                    nearbyColorMatrix[i][j] = -1.0f;
-                } else if (tile.getPaint().isAlly()) {
-                    nearbyColorMatrix[i][j] = -1.0f;
-                } else if (tile.isWall() || tile.hasRuin()) {
-                    nearbyColorMatrix[i][j] = -1.0f;
-                } else if (tile.getPaint() == PaintType.ENEMY_PRIMARY || tile.getPaint() == PaintType.ENEMY_SECONDARY) {
+                    nearbyColorMatrix[i][j] = 0.0f;
+                } else if (!tile.getPaint().isAlly()) {
                     // it is good for splashers to paint those tiles
                     nearbyColorMatrix[i][j] = 1.0f;
                 } else if (tile.getPaint() == PaintType.EMPTY) {
                     // paint empty tiles
-                    // refrain from painting secondary painted tiles that are there because of a secondary mark
-                    nearbyColorMatrix[i][j] = tile.getMark().isSecondary() && tile.getPaint().isSecondary() ?
-                            -1.0f : 1.0f;
+                    // refrain from painting marked tiles
+                    nearbyColorMatrix[i][j] = tile.getMark().isAlly() ? -1.0f : 1.0f;
                 } else {
-                    System.out.println("Splasher encountered unknown tile please tell what it is");
-                    System.out.println(tile.getMapLocation());
-                    nearbyColorMatrix[i][j] = 0;
+                    // avoid painting our own tiles
+                    nearbyColorMatrix[i][j] = -1.0f;
                 }
             }
         }
@@ -89,8 +83,7 @@ public class SplasherConvolution {
         if (affinities.length < kernel.length || affinities[0].length < kernel[0].length) {
             throw new IllegalArgumentException("Kernel size must be smaller than or equal to the affinities size.");
         }
-        float[][] result =
-                new float[affinities.length - kernel.length + 1][affinities[0].length - kernel[0].length + 1];
+        float[][] result = new float[affinities.length - kernel.length + 1][affinities[0].length - kernel[0].length + 1];
         for (int i = 0; i < result.length; i++) {
             for (int j = 0; j < result[0].length; j++) {
                 float sum = 0.0f;
@@ -141,7 +134,7 @@ public class SplasherConvolution {
                 // no good attack spot found
                 return false;
             }
-            if (mapInfoGrid[maxi][maxj] != null && rc.canAttack(mapInfoGrid[maxi][maxj].getMapLocation())) {
+            if (rc.canAttack(mapInfoGrid[maxi][maxj].getMapLocation())) {
                 try {
                     rc.attack(mapInfoGrid[maxi][maxj].getMapLocation());
                     return true;

@@ -53,7 +53,7 @@ public class SplasherConvolution {
         for (int i = 0; i < radius * 2 + 1; i++) {
             for (int j = 0; j < radius * 2 + 1; j++) {
                 MapInfo tile = arrangedTiles[i][j];
-                if (tile.getPaint().isEnemy()) {
+                if (!tile.getPaint().isAlly()) {
                     // it is good for splashers to paint those tiles
                     nearbyColorMatrix[i][j] = 1.0f;
                 } else if (tile.getPaint() == PaintType.EMPTY) {

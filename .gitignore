@@ -7,3 +7,4 @@
 /.settings
 java/client_version.txt
 java/engine_version.txt
+java/gradle.properties

@@ -65,4 +65,16 @@ public class Tower extends RobotPlayer {
         }
 	}
 	
+    /** Array containing all the possible movement directions. */
+    static final Direction[] directions = {
+        Direction.NORTH,
+        Direction.NORTHEAST,
+        Direction.EAST,
+        Direction.SOUTHEAST,
+        Direction.SOUTH,
+        Direction.SOUTHWEST,
+        Direction.WEST,
+        Direction.NORTHWEST,
+    };
+	
 }
