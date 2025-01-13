@@ -34,9 +34,19 @@ public class UnpackedMessage extends RobotPlayer {
 	
 	public static void encodeAndSend(RobotController rc, MapLocation target, String command, MapLocation locInfo, int turnInfo) throws GameActionException {
 		// 5 bits for command type, 12 bits for location info, 11 bits for turn info (28/32 bits used currently)
-		int messageContent = (rc.getType().isTowerType() ? towerCommandMap.get(command) : bunnyCommandMap.get(command)) * 134217728
-				+ locInfo.x * 2097152 + locInfo.y * 32768 + turnInfo * 16;
+		// 5 bits
+		int messageContent = rc.getType().isTowerType() ? towerCommandMap.get(command) : bunnyCommandMap.get(command);
+		messageContent <<= 6; // make space for 6 bits
+		messageContent += locInfo.x; // 6 bits
+		messageContent <<= 6;
+		messageContent += locInfo.y; // 6 bits
+		messageContent <<= 11;
+		messageContent += turnInfo; // 11 bits
+		messageContent <<= 4;
+		// 4 unused bits remain
 		rc.sendMessage(target, messageContent);
+		System.out.println(String.format("Sent message: command %d, x%d, y%d, turn %d, unused %d",
+				command, locInfo.x, locInfo.y, turnInfo, 0));
 	}
 	
 	public static void encodeAndSend(RobotController rc, MapLocation target, String command, MapLocation locInfo) throws GameActionException {
@@ -55,10 +65,20 @@ public class UnpackedMessage extends RobotPlayer {
         	Message m = messages[count];
             bytes = m.getBytes();
         	System.out.println((rc.getType().isTowerType() ? "Tower" : "Bunny") + " received message: '#" + m.getSenderID() + " " + bytes);
-        	int c = bytes / 134217728; bytes -= c * 134217728;
-        	int x = bytes / 2097152; bytes -= x * 2097152;
-        	int y = bytes / 32768; bytes -= y * 32768;
-        	int turn = bytes / 16; bytes -= turn * 16;
+			int unused = bytes & 0b1111;
+			bytes >>= 4;
+			int turn = bytes & 0b11111111111;
+			bytes >>= 11;
+			int y = bytes & 0b111111;
+			bytes >>= 6;
+			int x = bytes & 0b111111;
+			bytes >>= 6;
+			int c = bytes & 0b11111;
+			bytes >>= 5;
+			// now bytes should either be all 0s (if bytes was +) or all 1s (if bytes was -)
+
+			System.out.println(String.format("Received message: command %d, x%d, y%d, turn %d, unused %d",
+					c, x, y, turn, unused));
             unpackedMessages[count] = new UnpackedMessage(c, new MapLocation(x, y), turn, m.getRound(), m.getSenderID());
             count += 1;
         }
