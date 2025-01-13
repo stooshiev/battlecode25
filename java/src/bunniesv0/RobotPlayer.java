@@ -247,27 +247,31 @@ public class RobotPlayer {
         int markRuinStatus = MarkRuin.markIfFound(rc, nearbyTiles, nearbyRobots,
                 MarkRuin.INITIAL_TOWERS[rng.nextInt(MarkRuin.INITIAL_TOWERS.length - 1)]);
 
-        float[][] affinities = SplasherConvolution.attackAffinities(rc, nearbyTiles);
-        float[][] attackValues = SplasherConvolution.convolve3(affinities);
-        boolean attacked = SplasherConvolution.attackBest(rc, nearbyTiles, attackValues, threshold);
-        if (attacked) {
-            threshold = 7.5f;
-        } else if (threshold < 3.0f) {
-            threshold -= 0.1f;
+        if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT && rc.getPaint() >= UnitType.SPLASHER.attackCost) {
+            // if it can attack, look around and maybe attack
+            float[][] affinities = SplasherConvolution.attackAffinities(rc, nearbyTiles);
+            float[][] attackValues = SplasherConvolution.convolve3(affinities);
+            boolean attacked = SplasherConvolution.attackBest(rc, nearbyTiles, attackValues, threshold);
+            if (attacked) {
+                threshold = 7.5f;
+            } else if (threshold < 3.0f) {
+                threshold -= 0.1f;
+            }
         }
 
-        if (markRuinStatus == 2 || markRuinStatus == 3) {
-            // don't move normally if we're making progress towards marking a pattern
-            return;
-        }
-
-        if (splasherDirection == null) {
-            splasherDirection = directions[rng.nextInt(directions.length)];
-        }
-        if (rc.canMove(splasherDirection)) {
-            rc.move(splasherDirection);
-        } else {
-            splasherDirection = null;
+        if (rc.isMovementReady()) {
+            if (markRuinStatus == 2 || markRuinStatus == 3) {
+                // don't move normally if we're making progress towards marking a pattern
+                return;
+            }
+            if (splasherDirection == null) {
+                splasherDirection = directions[rng.nextInt(directions.length)];
+            }
+            if (rc.canMove(splasherDirection)) {
+                rc.move(splasherDirection);
+            } else {
+                splasherDirection = null;
+            }
         }
     }
 
