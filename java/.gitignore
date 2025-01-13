@@ -200,3 +200,4 @@ java/engine_version.txt
 .idea/misc.xml
 gradle.properties
 .gitignore
+gradlog.txt

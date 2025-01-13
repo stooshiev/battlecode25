@@ -82,7 +82,7 @@ public class RobotPlayer {
                 switch (rc.getType()){
                     case SOLDIER: runSoldier(rc); break; 
                     case MOPPER: runMopper(rc); break;
-                    case SPLASHER: runSplasher(rc); // Consider upgrading examplefuncsplayer to use splashers!
+                    case SPLASHER: runSplasher(rc); break; // Consider upgrading examplefuncsplayer to use splashers!
                     default: runTower(rc); break;
                     }
                 }
@@ -240,28 +240,38 @@ public class RobotPlayer {
      * then picks a new direction to move in.
      */
     static Direction splasherDirection = null;
+    static float threshold = 9.0f;
     static void runSplasher(RobotController rc) throws GameActionException {
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
         int markRuinStatus = MarkRuin.markIfFound(rc, nearbyTiles, nearbyRobots,
                 MarkRuin.INITIAL_TOWERS[rng.nextInt(MarkRuin.INITIAL_TOWERS.length - 1)]);
 
-        float[][] affinities = SplasherConvolution.attackAffinities(rc, nearbyTiles);
-        float[][] attackValues = SplasherConvolution.convolve(affinities);
-        SplasherConvolution.attackBest(rc, nearbyTiles, attackValues, 6.0f);
-
-        if (markRuinStatus == 2 || markRuinStatus == 3) {
-            // don't move normally if we're making progress towards marking a pattern
-            return;
+        if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT && rc.getPaint() >= UnitType.SPLASHER.attackCost) {
+            // if it can attack, look around and maybe attack
+            float[][] affinities = SplasherConvolution.attackAffinities(rc, nearbyTiles);
+            float[][] attackValues = SplasherConvolution.convolve3(affinities);
+            boolean attacked = SplasherConvolution.attackBest(rc, nearbyTiles, attackValues, threshold);
+            if (attacked) {
+                threshold = 7.5f;
+            } else if (threshold < 3.0f) {
+                threshold -= 0.1f;
+            }
         }
 
-        if (splasherDirection == null) {
-            splasherDirection = directions[rng.nextInt(directions.length)];
-        }
-        if (rc.canMove(splasherDirection)) {
-            rc.move(splasherDirection);
-        } else {
-            splasherDirection = null;
+        if (rc.isMovementReady()) {
+            if (markRuinStatus == 2 || markRuinStatus == 3) {
+                // don't move normally if we're making progress towards marking a pattern
+                return;
+            }
+            if (splasherDirection == null) {
+                splasherDirection = directions[rng.nextInt(directions.length)];
+            }
+            if (rc.canMove(splasherDirection)) {
+                rc.move(splasherDirection);
+            } else {
+                splasherDirection = null;
+            }
         }
     }
 
