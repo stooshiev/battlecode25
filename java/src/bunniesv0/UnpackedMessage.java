@@ -10,6 +10,17 @@ public class UnpackedMessage extends RobotPlayer {
 	int turnInfo;
 	int senderTurn;
 	int senderID;
+
+	// Commands from bunny to tower
+	static final int SAVE_CHIPS = 0;
+	static final int SEND_ROBOTS = 1;
+	static final int SEND_SOLDIERS = 2;
+	static final int SEND_MOPPERS = 3;
+	static final int SEND_SPLASHERS = 4;
+
+	// Commands from tower to bunny
+	static final int GO_TO = 0;
+	static final int TAKE_PAINT = 1;
 	
 	public UnpackedMessage(int c, MapLocation loc, int turn, int sTurn, int sID) {
 		command = c;
@@ -18,33 +29,39 @@ public class UnpackedMessage extends RobotPlayer {
 		senderTurn = sTurn;
 		senderID = sID;
 	}
-	
-	public static Map<String, Integer> bunnyCommandMap = Map.ofEntries(
-			Map.entry("Save Chips", 0),
-			Map.entry("Send Robots", 1),
-            Map.entry("Send Soldiers", 2),
-            Map.entry("Send Moppers", 3),
-            Map.entry("Send Splashers", 4)
-        );
-	
-	public static Map<String, Integer> towerCommandMap = Map.ofEntries(
-			Map.entry("Go To", 0), 
-			Map.entry("Take Paint", 1)
-        );
-	
-	public static void encodeAndSend(RobotController rc, MapLocation target, String command, MapLocation locInfo, int turnInfo) throws GameActionException {
+
+	public static void encodeAndSend(RobotController rc, MapLocation target, int command,
+									 MapLocation locInfo, int turnInfo)
+			throws GameActionException {
 		// 5 bits for command type, 12 bits for location info, 11 bits for turn info (28/32 bits used currently)
-		int messageContent = (rc.getType().isTowerType() ? towerCommandMap.get(command) : bunnyCommandMap.get(command)) * 134217728
-				+ locInfo.x * 2097152 + locInfo.y * 32768 + turnInfo * 16;
+		// 5 bits
+		int messageContent = command;
+		messageContent <<= 6; // make space for 6 bits
+		messageContent += locInfo.x; // 6 bits
+		messageContent <<= 6;
+		messageContent += locInfo.y; // 6 bits
+		messageContent <<= 11;
+		messageContent += turnInfo; // 11 bits
+		messageContent <<= 4;
+		// 4 unused bits remain
+		System.out.println("Sending message " + messageContent);
+		System.out.printf("Message content: command %d, x%d, y%d, turn %d, unused %d%n",
+				command, locInfo.x, locInfo.y, turnInfo, 0);
 		rc.sendMessage(target, messageContent);
 	}
 	
-	public static void encodeAndSend(RobotController rc, MapLocation target, String command, MapLocation locInfo) throws GameActionException {
+	public static void encodeAndSend(RobotController rc, MapLocation target, int command, MapLocation locInfo)
+			throws GameActionException {
 		encodeAndSend(rc, target, command, locInfo, 2002);
 	}
-	
-	public static void encodeAndSend(RobotController rc, MapLocation target, String command, int turn) throws GameActionException {
+
+	public static void encodeAndSend(RobotController rc, MapLocation target, int command, int turn)
+			throws GameActionException {
 		encodeAndSend(rc, target, command, new MapLocation(60, 60), turn);
+	}
+
+	public static void encodeAndSend(RobotController rc, MapLocation target, int command) throws GameActionException {
+		encodeAndSend(rc, target, command, new MapLocation(60, 60), 2002);
 	}
 	
 	public static UnpackedMessage[] receiveAndDecode(RobotController rc) throws GameActionException {
@@ -54,12 +71,24 @@ public class UnpackedMessage extends RobotPlayer {
         for (int count = 0; count < messages.length; count++) {
         	Message m = messages[count];
             bytes = m.getBytes();
-        	System.out.println((rc.getType().isTowerType() ? "Tower" : "Bunny") + " received message: '#" + m.getSenderID() + " " + bytes);
-        	int c = bytes / 134217728; bytes -= c * 134217728;
-        	int x = bytes / 2097152; bytes -= x * 2097152;
-        	int y = bytes / 32768; bytes -= y * 32768;
-        	int turn = bytes / 16; bytes -= turn * 16;
-            unpackedMessages[count] = new UnpackedMessage(c, new MapLocation(x, y), turn, m.getRound(), m.getSenderID());
+        	System.out.println((rc.getType().isTowerType() ? "Tower" : "Bunny") +
+					" received message: '#" + m.getSenderID() + " " + bytes);
+			int unused = bytes & 0b1111;
+			bytes >>= 4;
+			int turn = bytes & 0b11111111111;
+			bytes >>= 11;
+			int y = bytes & 0b111111;
+			bytes >>= 6;
+			int x = bytes & 0b111111;
+			bytes >>= 6;
+			int c = bytes & 0b11111;
+			bytes >>= 5;
+			// now bytes should either be all 0s (if bytes was +) or all 1s (if bytes was -)
+
+			System.out.printf("Message content: command %d, x%d, y%d, turn %d, unused %d%n",
+					c, x, y, turn, unused);
+            unpackedMessages[count] = new UnpackedMessage(c, new MapLocation(x, y), turn,
+					m.getRound(), m.getSenderID());
             count += 1;
         }
         return unpackedMessages;

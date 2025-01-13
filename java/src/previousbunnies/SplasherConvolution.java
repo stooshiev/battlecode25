@@ -55,17 +55,28 @@ public class SplasherConvolution {
             for (int j = 0; j < radius * 2 + 1; j++) {
                 MapInfo tile = arrangedTiles[i][j];
                 if (tile == null) {
-                    nearbyColorMatrix[i][j] = 0.0f;
-                } else if (!tile.getPaint().isAlly()) {
+                    nearbyColorMatrix[i][j] = -1.0f;
+                } else if (tile.getPaint().isAlly()) {
+                    nearbyColorMatrix[i][j] = -1.0f;
+                } else if (tile.isWall() || tile.hasRuin()) {
+                    nearbyColorMatrix[i][j] = -1.0f;
+                } else if (tile.getPaint() == PaintType.ENEMY_PRIMARY || tile.getPaint() == PaintType.ENEMY_SECONDARY) {
                     // it is good for splashers to paint those tiles
                     nearbyColorMatrix[i][j] = 1.0f;
                 } else if (tile.getPaint() == PaintType.EMPTY) {
                     // paint empty tiles
-                    // refrain from painting marked tiles
-                    nearbyColorMatrix[i][j] = tile.getMark().isAlly() ? -1.0f : 1.0f;
+                    // refrain from painting secondary painted tiles that are there because of a secondary mark
+                    nearbyColorMatrix[i][j] = tile.getMark().isSecondary() && tile.getPaint().isSecondary() ?
+                            -1.0f : 1.0f;
                 } else {
-                    // avoid painting our own tiles
-                    nearbyColorMatrix[i][j] = -1.0f;
+                    System.out.println("Splasher encountered unknown tile please tell what it is");
+                    System.out.println(tile.getMapLocation());
+//                    try {
+//                        rc.setIndicatorDot(tile.getMapLocation(), 0, 255, 0);
+//                    } catch (GameActionException e) {
+//                        System.out.println("Couldn't place an indicator dot sorry");
+//                    }
+                    nearbyColorMatrix[i][j] = 0;
                 }
             }
         }
@@ -83,7 +94,8 @@ public class SplasherConvolution {
         if (affinities.length < kernel.length || affinities[0].length < kernel[0].length) {
             throw new IllegalArgumentException("Kernel size must be smaller than or equal to the affinities size.");
         }
-        float[][] result = new float[affinities.length - kernel.length + 1][affinities[0].length - kernel[0].length + 1];
+        float[][] result =
+                new float[affinities.length - kernel.length + 1][affinities[0].length - kernel[0].length + 1];
         for (int i = 0; i < result.length; i++) {
             for (int j = 0; j < result[0].length; j++) {
                 float sum = 0.0f;
@@ -134,7 +146,7 @@ public class SplasherConvolution {
                 // no good attack spot found
                 return false;
             }
-            if (rc.canAttack(mapInfoGrid[maxi][maxj].getMapLocation())) {
+            if (mapInfoGrid[maxi][maxj] != null && rc.canAttack(mapInfoGrid[maxi][maxj].getMapLocation())) {
                 try {
                     rc.attack(mapInfoGrid[maxi][maxj].getMapLocation());
                     return true;

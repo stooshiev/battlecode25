@@ -34,7 +34,7 @@ public class RobotPlayer {
      * we get the same sequence of numbers every time this code is run. This is very useful for debugging!
      */
     static final long RANDOM_SEED = 6147;
-    static final Random rng = new Random(6162);
+    static final Random rng = new Random(RANDOM_SEED);
 
     /** Array containing all the possible movement directions. */
     static final Direction[] directions = {
@@ -158,6 +158,9 @@ public class RobotPlayer {
             }
         }
         
+        
+       
+        
         if (curRuin != null){
             MapLocation targetLoc = curRuin.getMapLocation();
             Direction dir = rc.getLocation().directionTo(targetLoc);
@@ -190,8 +193,9 @@ public class RobotPlayer {
             
             if (isMarking) {
 		        
-		        if (rc.canMove(dir))
+		        if (rc.canMove(dir)) {
 		        	rc.move(dir);
+		        }
             }
         }
         if (!isMarking) {

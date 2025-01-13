@@ -60,7 +60,7 @@ public class SplasherConvolution {
                     nearbyColorMatrix[i][j] = -1.0f;
                 } else if (tile.isWall() || tile.hasRuin()) {
                     nearbyColorMatrix[i][j] = -1.0f;
-                } else if (!tile.getPaint().isAlly()) { // Changed from isEnemy
+                } else if (tile.getPaint() == PaintType.ENEMY_PRIMARY || tile.getPaint() == PaintType.ENEMY_SECONDARY) {
                     // it is good for splashers to paint those tiles
                     nearbyColorMatrix[i][j] = 1.0f;
                 } else if (tile.getPaint() == PaintType.EMPTY) {

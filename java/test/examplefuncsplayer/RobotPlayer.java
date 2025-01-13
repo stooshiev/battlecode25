@@ -1,4 +1,4 @@
-package testfuncsplayer2;
+package examplefuncsplayer;
 
 import battlecode.common.*;
 
@@ -73,7 +73,7 @@ public class RobotPlayer {
                 // use different strategies on different robots. If you wish, you are free to rewrite
                 // this into a different control structure!
                 switch (rc.getType()){
-                    case SOLDIER: break;//runSoldier(rc); break; 
+                    case SOLDIER: runSoldier(rc); break; 
                     case MOPPER: runMopper(rc); break;
                     case SPLASHER: break; // Consider upgrading examplefuncsplayer to use splashers!
                     default: runTower(rc); break;
@@ -176,14 +176,13 @@ public class RobotPlayer {
                 rc.setTimelineMarker("Tower built", 0, 255, 0);
                 System.out.println("Built a tower at " + targetLoc + "!");
             }
-        } else {
+        }
 
         // Move and attack randomly if no objective.
         Direction dir = directions[rng.nextInt(directions.length)];
         MapLocation nextLoc = rc.getLocation().add(dir);
         if (rc.canMove(dir)){
             rc.move(dir);
-        }
         }
         // Try to paint beneath us as we walk to avoid paint penalties.
         // Avoiding wasting paint by re-painting our own tiles.
