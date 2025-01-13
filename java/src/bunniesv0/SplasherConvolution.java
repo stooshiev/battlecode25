@@ -48,26 +48,26 @@ public class SplasherConvolution {
      * @param nearbyTiles MapInfo array returned by rc.getNearbyMapInfos()
      */
     public static float[][] attackAffinities(RobotController rc, MapInfo[] nearbyTiles) {
-        int radius = 4;
+        int radius = 3;
         float[][] nearbyColorMatrix = new float[radius * 2 + 1][radius * 2 + 1];
         MapInfo[][] arrangedTiles = arrangeMapInfos(rc, nearbyTiles, radius);
         for (int i = 0; i < radius * 2 + 1; i++) {
             for (int j = 0; j < radius * 2 + 1; j++) {
                 MapInfo tile = arrangedTiles[i][j];
-                if (tile == null) {
+                if (tile == null) { // out of bounds
                     nearbyColorMatrix[i][j] = -1.0f;
-                } else if (tile.getPaint().isAlly()) {
-                    nearbyColorMatrix[i][j] = -1.0f;
-                } else if (tile.isWall() || tile.hasRuin()) {
+                } else if (tile.getPaint().isAlly()) { // ally tile
+                    // we don't want to paint over ally tiles, it's a waste
+                    // we definitely don't want to paint over towers in progress
+                    nearbyColorMatrix[i][j] = tile.getMark().isSecondary() ? -2.0f : -1.0f;
+                } else if (tile.isWall() || tile.hasRuin()) { // ruin or wall
                     nearbyColorMatrix[i][j] = -1.0f;
                 } else if (tile.getPaint() == PaintType.ENEMY_PRIMARY || tile.getPaint() == PaintType.ENEMY_SECONDARY) {
-                    // it is good for splashers to paint those tiles
+                    // enemy tile
                     nearbyColorMatrix[i][j] = 1.0f;
                 } else if (tile.getPaint() == PaintType.EMPTY) {
                     // paint empty tiles
-                    // refrain from painting secondary painted tiles that are there because of a secondary mark
-                    nearbyColorMatrix[i][j] = tile.getMark().isSecondary() && tile.getPaint().isSecondary() ?
-                            -1.0f : 1.0f;
+                    nearbyColorMatrix[i][j] = 1.2f;
                 } else {
                     System.out.println("Splasher encountered unknown tile please tell what it is");
                     System.out.println(tile.getMapLocation());
@@ -111,6 +111,32 @@ public class SplasherConvolution {
     }
 
     /*
+     * More streamlined convolution for the center 3x3 of the splasher's attack zone.
+     * Convolution disregards 31% of attack zone for a 64% reduction in tiles examined
+     */
+    public static float[][] convolve3(float[][] affinities) {
+        if (affinities.length == 0 || affinities[0].length == 0 || kernel.length == 0 || kernel[0].length == 0) {
+            throw new IllegalArgumentException("Arrays must be non-empty.");
+        }
+        if (affinities.length < kernel.length || affinities[0].length < kernel[0].length) {
+            throw new IllegalArgumentException("Kernel size must be smaller than or equal to the affinities size.");
+        }
+        float[][] result = new float[affinities.length - 2][affinities[0].length - 2];
+        for (int i = 0; i < result.length; i++) {
+            for (int j = 0; j < result[0].length; j++) {
+                float sum = 0.0f;
+                for (int x = 0; x < 3; x++) {
+                    for (int y = 0; y < 3; y++) {
+                        sum += affinities[i + x][j + y];
+                    }
+                }
+                result[i][j] = sum;
+            }
+        }
+        return result;
+    }
+
+    /*
      * Attacks the best spot, if there is a good enough spot
      * @param rc Splasher
      * @param nearbyTiles MapInfo[] returned by rc.getNearbyMapInfos()
@@ -127,6 +153,7 @@ public class SplasherConvolution {
                 {false, true, true, true, false},
                 {false, false, true, false, false}
         };
+        System.out.println("Attack totals length: " + attackTotals.length);
         assert (attackTotals.length == 5);
         while (true) {
             float maxFound = threshold - 1;
