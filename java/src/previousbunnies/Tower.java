@@ -2,7 +2,7 @@ package previousbunnies;
 
 import battlecode.common.*;
 
-public class Tower extends RobotPlayer {
+class Tower extends RobotPlayer {
 	
 	public static void runTurnBasedActions(RobotController rc) throws GameActionException {
 		if (getTowerLevel(rc) != 3 && rc.getMoney() >= rc.getType().getNextLevel().moneyCost + (getTowerType(rc) == "Money" ? 1 : 2) * UnitType.MOPPER.moneyCost) {
@@ -21,6 +21,7 @@ public class Tower extends RobotPlayer {
 	}
 	
 	public static void attackPattern0(RobotController rc, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) throws GameActionException {
+
 		int rcAttackStrength = rc.getType().attackStrength;
 		
 		// Does AoE attack no matter what.
@@ -61,6 +62,7 @@ public class Tower extends RobotPlayer {
 	}
 	
 	public static RobotInfo createRobot(RobotController rc, int robotType) throws GameActionException {
+		
 		// Pick a direction to build in.
         Direction dir = directions[rng.nextInt(directions.length)];
         MapLocation nextLoc = rc.getLocation().add(dir);
@@ -75,19 +77,34 @@ public class Tower extends RobotPlayer {
             System.out.println("BUILT A MOPPER");
             rc.setIndicatorString("BUILT A MOPPER");
         }
-        else if (robotType == 2 && rc.canBuildRobot(UnitType.SPLASHER, nextLoc)){
+//        else if (robotType == 2 && rc.canBuildRobot(UnitType.SPLASHER, nextLoc)){
 //            rc.buildRobot(UnitType.SPLASHER, nextLoc);
 //            System.out.println("BUILT A SPLASHER");
 //            rc.setIndicatorString("BUILT A SPLASHER");
-        	rc.buildRobot(UnitType.SOLDIER, nextLoc);
-            System.out.println("BUILT A SOLDIER");
-            rc.setIndicatorString("BUILT A SOLDIER");
-        }
+//        }
         return rc.senseRobotAtLocation(nextLoc);
 	}
 	
 	public static void createRobot(RobotController rc) throws GameActionException {
 		createRobot(rc, rng.nextInt(3));
+	}
+	
+	public static void refillRobots(RobotController rc, RobotInfo[] nearbyRobots) throws GameActionException {
+		RobotInfo targetRobot = null;
+		for (RobotInfo robot : nearbyRobots) {
+			if (rc.getLocation().isAdjacentTo(robot.location) && rc.getTeam() == rc.getTeam() && (float) robot.getPaintAmount() / robot.getType().paintCapacity <= 0.7) {
+				if (targetRobot == null) {
+					targetRobot = robot;
+				}
+				else if (targetRobot.type.paintCapacity - targetRobot.paintAmount <= robot.type.paintCapacity - robot.paintAmount) {
+					targetRobot = robot;
+				}
+			}
+		}
+		if (targetRobot != null) {
+			UnpackedMessage.encodeAndSend(rc, targetRobot.location, UnpackedMessage.TAKE_PAINT, rc.getLocation());
+		}
+		
 	}
 	
 	public static void actOnMessages(RobotController rc, UnpackedMessage[] unpackedMessages, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) throws GameActionException {
@@ -106,14 +123,14 @@ public class Tower extends RobotPlayer {
 		boolean nearbyRobot = false;
 		for (RobotInfo robot : nearbyRobots) {
 			if (robot.getTeam() == rc.getTeam() && robot.getType() == UnitType.MOPPER) {
-				UnpackedMessage.encodeAndSend(rc, robot.getLocation(), "Go To", target);
+				UnpackedMessage.encodeAndSend(rc, robot.getLocation(), UnpackedMessage.GO_TO, target);
 				nearbyRobot = true;
 				break;
 			}
 		}
 		if (nearbyRobot == false) {
 			RobotInfo newRobotInfo = createRobot(rc, 1);
-			UnpackedMessage.encodeAndSend(rc, newRobotInfo.getLocation(), "Go To", target);
+			UnpackedMessage.encodeAndSend(rc, newRobotInfo.getLocation(), UnpackedMessage.GO_TO, target);
 		}
 
 	}
@@ -149,5 +166,4 @@ public class Tower extends RobotPlayer {
 			return -1;
 		}
 	}
-	
 }
