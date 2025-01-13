@@ -234,7 +234,14 @@ public class RobotPlayer {
 //        Direction dir = directions[rng.nextInt(directions.length)];
     	Direction dir = prevDir;
         
-    	
+    	if (rng.nextInt(10) == 0) { //random chance (1/10 per turn) to turn left or right
+    		
+    		int directionDecider = rng.nextInt(2); 
+    		
+    		if (directionDecider == 1) {dir.rotateRight();}
+    		else {dir.rotateLeft();}
+    		
+    	}
     	
     	if (prevDir.equals(Direction.CENTER)) {
         	//guaranteed to be left side
@@ -245,9 +252,20 @@ public class RobotPlayer {
         	else if (currentLocation.y < 10) {
         		dir = Direction.NORTHWEST;
         	}
-        	//if didnt move last time
-        	else if (prevDir.equals(Direction.CENTER)) {
+        	
+        	else {
         		dir = directions[rng.nextInt(directions.length)]; //pick random direction and go
+        		
+        		int counter = 0;
+                while (!rc.canMove(dir) && counter < 8){ //if that direction is invalid change it
+                    dir = dir.rotateRight();
+                    counter++;
+                }
+        		
+                if (counter == 8) {
+                	dir = Direction.CENTER;
+                }
+                
         	}
         }
         
@@ -263,32 +281,74 @@ public class RobotPlayer {
         		dir = dir.rotateRight().rotateRight();
         	}
         }*/
-        
-        //Pick new direction to move if 
-        while (!rc.canMove(dir)){
-            dir = directions[rng.nextInt(directions.length)];
-        }
-        
+    	
         MapLocation nextLocation = currentLocation.add(dir);
+        Direction attackDirection = nearbyEnemyPaintDirection(rc, 1);
         //Once movement direction is chosen, make sure that spot is NOT an enemy paint tile, if it is:
-        if (rc.canAttack(nextLocation)){
-            rc.attack(nextLocation);
+        try {
+	        if (rc.senseMapInfo(nextLocation).getPaint().isEnemy() && rc.canAttack(nextLocation)){
+	            rc.attack(nextLocation);
+	            
+	        }
+	        //if there is enemy paint robot can mop; center means no nearby enemy paint that can be attacked
+	        else if (!attackDirection.equals(Direction.CENTER)) {
+	        	dir = Direction.CENTER;
+	        	nextLocation = currentLocation;
+	        	if (rc.isActionReady()) {
+	        		System.out.println("ATTACKING IN DIRECTION: " + attackDirection.toString());
+	        		rc.attack(currentLocation.add(attackDirection));
+	        	}
+	        }
         }
-        //if the paint in front of you is enemy paint AND you cant remove bc of action cooldown
-        else if (rc.senseMapInfo(nextLocation).getPaint() == PaintType.ENEMY_PRIMARY || rc.senseMapInfo(nextLocation).getPaint() == PaintType.ENEMY_SECONDARY) {
-        	dir = Direction.CENTER;
-        	nextLocation = currentLocation;
+        catch (GameActionException e) {
+        	System.out.println("Location causing the problem: " + nextLocation.toString());
+        	//if there is enemy paint robot can mop; center means no nearby enemy paint that can be attacked, run this part again bc exception caused it to not run
+        	if (!attackDirection.equals(Direction.CENTER)) {
+	        	dir = Direction.CENTER;
+	        	nextLocation = currentLocation;
+	        	if (rc.isActionReady()) {
+	        		System.out.println("ATTACKING IN DIRECTION: " + attackDirection.toString());
+	        		rc.attack(currentLocation.add(attackDirection));
+	        	}
+	        }
         }
         
-        //low on paint
-    	if (rc.getPaint() < 50) {
+        
+        RobotInfo[] allSeenEnemyRobots = findEnemyRobots(rc);
+        RobotInfo[] allSeenFriendlyRobots = findFriendlyRobots(rc);
+        //low on paint or too many nearby enemies or low on health
+    	if (rc.getPaint() < 50 || allSeenEnemyRobots.length > allSeenFriendlyRobots.length + 2 || rc.getHealth() < 20) { //retreat case
     		MapLocation nearestPaintTowerLoc = findNearestStructure(rc, 2);
     		dir = currentLocation.directionTo(nearestPaintTowerLoc);
-    		System.out.println("I AM TRYING TO RETURN TO PAINT TOWER, DIRECTION: " + dir.toString());
+//    		System.out.println("I AM TRYING TO RETURN TO PAINT TOWER, DIRECTION: " + dir.toString());
     	}
+    	
+    	//Pick new direction to move if cant move in picked direction, stops after all directions are tried
+    	int counter = 0;
+        while (!rc.canMove(dir) && counter < 8){
+            dir = dir.rotateRight();
+            counter++;
+        }
+        
+        //dont move if cant move in any direction
+        if (counter == 8) {
+        	dir = Direction.CENTER;
+        }
+    	
+        //Reupdate nextLocation in case direction was changed
+        nextLocation = currentLocation.add(dir);
         
         //Move in chosen direction
-        rc.move(dir);
+        if (rc.canMove(dir)) { //needs to be here if cooldown isnt done
+        	try {
+        		rc.move(dir);
+        	}
+        	catch (GameActionException e) { //trying to move out of bounds
+        		dir = dir.rotateLeft().rotateLeft().rotateLeft();
+        		rc.move(dir);
+        	}
+        	
+        }
         
     	RobotInfo[] enemyRobotsInSwingRadius = findEnemyRobots(rc, 1); //find all enemy robots within swinging distance
     	Direction swingDir = optimalSwing(rc, enemyRobotsInSwingRadius); //find best direction to swing
@@ -296,7 +356,7 @@ public class RobotPlayer {
     	//if swingDir is center that means no enemies around 
     	if (!swingDir.equals(Direction.CENTER) && rc.canMopSwing(swingDir)) {
     		rc.mopSwing(swingDir);
-    		System.out.println("Mop Swing! Booyah!");
+    		System.out.println("I did a mop swing and actually hit an enemy...");
     	}
     	 
         prevDir = dir; //update previous direction
@@ -349,7 +409,7 @@ public class RobotPlayer {
     					correspondingNum += 3;
     				}
     				
-    				System.out.println("ADDING LOCATION: " + tileLocation.toString() + " TO TYPE: " + Integer.toString(correspondingNum));
+//    				System.out.println("ADDING LOCATION: " + tileLocation.toString() + " TO TYPE: " + Integer.toString(correspondingNum));
     				mapMemory.put(tileLocation, correspondingNum);
         			importantLocations.get(correspondingNum).add(tileLocation);
 				} 
@@ -365,8 +425,25 @@ public class RobotPlayer {
     	}
     }
     
+    public static Direction nearbyEnemyPaintDirection(RobotController rc, int radiussquared) {
+    	try {
+    		MapInfo[] nearbyTiles = rc.senseNearbyMapInfos(radiussquared);
+    		
+    		for (MapInfo tile : nearbyTiles) {
+    		
+    			if (tile.getPaint().isEnemy()) {return rc.getLocation().directionTo(tile.getMapLocation());}
+    		
+    		}
+    		
+    		return Direction.CENTER;
+    	}
+    	catch (GameActionException e) { //shouldnt ever happen, only here because java will get mad if it's not 
+    		return Direction.CENTER;
+    	}
+    }
+    
     public static boolean isEnemy(RobotController rc, RobotInfo otherRobot) {
-    	return !rc.getTeam().equals(otherRobot.getTeam());
+    	return rc.getTeam().opponent().equals(otherRobot.getTeam());
     }
     
     //returns current location if no paint towers have been seen yet
@@ -453,6 +530,17 @@ public class RobotPlayer {
     //Overloaded version for checking within a specific radius
     public static RobotInfo[] findEnemyRobots(RobotController rc, int radius) throws GameActionException {
     	RobotInfo[] enemyRobots = rc.senseNearbyRobots(radius, rc.getTeam().opponent());
+    	return enemyRobots;
+    }
+    
+    public static RobotInfo[] findFriendlyRobots(RobotController rc) throws GameActionException {
+    	RobotInfo[] enemyRobots = rc.senseNearbyRobots(-1, rc.getTeam());
+    	return enemyRobots;
+    }
+    
+    //Overloaded version for checking within a specific radius
+    public static RobotInfo[] findFriendlyRobots(RobotController rc, int radius) throws GameActionException {
+    	RobotInfo[] enemyRobots = rc.senseNearbyRobots(radius, rc.getTeam());
     	return enemyRobots;
     }
    
