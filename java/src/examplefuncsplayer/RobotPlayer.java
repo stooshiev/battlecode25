@@ -166,8 +166,9 @@ public class RobotPlayer {
             for (MapInfo patternTile : rc.senseNearbyMapInfos(targetLoc, 8)){
                 if (patternTile.getMark() != patternTile.getPaint() && patternTile.getMark() != PaintType.EMPTY){
                     boolean useSecondaryColor = patternTile.getMark() == PaintType.ALLY_SECONDARY;
-                    if (rc.canAttack(patternTile.getMapLocation()))
+                    if (rc.canAttack(patternTile.getMapLocation())) 
                         rc.attack(patternTile.getMapLocation(), useSecondaryColor);
+                    
                 }
             }
             // Complete the ruin if we can.
