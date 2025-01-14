@@ -307,8 +307,8 @@ public class RobotPlayer {
     		
     		int directionDecider = rng.nextInt(2); 
     		
-    		if (directionDecider == 1) {dir.rotateRight();}
-    		else {dir.rotateLeft();}
+    		if (directionDecider == 1) {dir = dir.rotateRight();}
+    		else {dir = dir.rotateLeft();}
     		
     	}
     	
@@ -375,13 +375,14 @@ public class RobotPlayer {
 //        	System.out.println("Location causing the problem: " + nextLocation.toString());
         	//if there is enemy paint robot can mop; center means no nearby enemy paint that can be attacked, run this part again bc exception caused it to not run
         	if (!attackDirection.equals(Direction.CENTER)) {
-	        	dir = Direction.CENTER;
 	        	nextLocation = currentLocation;
 	        	if (rc.isActionReady()) {
 	        		System.out.println("ATTACKING IN DIRECTION: " + attackDirection.toString());
 	        		rc.attack(currentLocation.add(attackDirection));
 	        	}
 	        }
+            // set dir to center because the previous direction was off the map
+            dir = Direction.CENTER;
         }
         
         
@@ -404,12 +405,18 @@ public class RobotPlayer {
         
         //if there is adjacent friendly paint tiles in the direction of travel, prefer using them
     	if (!rc.senseMapInfo(nextLocation).getPaint().isAlly()) {
-    		if (rc.senseMapInfo(currentLocation.add(dir.rotateLeft())).getPaint().isAlly()) {
-    			dir = dir.rotateLeft();
-    		}
-    		else if (rc.senseMapInfo(currentLocation.add(dir.rotateRight())).getPaint().isAlly()) {
-    			dir = dir.rotateRight();
-    		}
+            boolean turnedLeft = false;
+            try {
+                if (rc.senseMapInfo(currentLocation.add(dir.rotateLeft())).getPaint().isAlly()) {
+                    dir = dir.rotateLeft();
+                    turnedLeft = true;
+                }
+            } catch (GameActionException e) { } // exception added in case dir.rotateLeft() is off the map
+            if (!turnedLeft) { try {
+    		    if (rc.senseMapInfo(currentLocation.add(dir.rotateRight())).getPaint().isAlly()) {
+                    dir = dir.rotateRight();
+                }
+            } catch (GameActionException e) { } } // exception added in case dir.rotateRight() is off the map
     	}
         
     	//Pick new direction to move if cant move in picked direction, stops after all directions are tried
@@ -428,8 +435,10 @@ public class RobotPlayer {
     	if (isLowOnPaint && isTowerAdjacent) {
     		int paintInTower = rc.senseRobotAtLocation(currentLocation.add(paintTowerDir)).getPaintAmount();
     		int transferAmount = Math.max(-paintInTower, rc.getPaint()-80); //needs to be the lesser magnitude of the two; hence the max not min
-    		System.out.println("TRANSFERING PAINT | PAINT AMOUNT: " + transferAmount);
-    		rc.transferPaint(currentLocation.add(paintTowerDir), transferAmount);
+    		if (rc.canTransferPaint(currentLocation.add(paintTowerDir), transferAmount)) {
+                System.out.println("TRANSFERING PAINT | PAINT AMOUNT: " + transferAmount);
+                rc.transferPaint(currentLocation.add(paintTowerDir), transferAmount);
+            }
     	}
         
         //Reupdate nextLocation in case direction was changed
@@ -530,7 +539,10 @@ public class RobotPlayer {
     		
     		for (MapInfo tile : nearbyTiles) {
     			
-    			if (tile.getPaint().equals(PaintType.ENEMY_PRIMARY) || tile.getPaint().equals(PaintType.ENEMY_SECONDARY)) {return rc.getLocation().directionTo(tile.getMapLocation());}
+    			if (tile.getPaint().equals(PaintType.ENEMY_PRIMARY) ||
+                        tile.getPaint().equals(PaintType.ENEMY_SECONDARY)) {
+                    return rc.getLocation().directionTo(tile.getMapLocation());
+                }
     		
     		}
     		
