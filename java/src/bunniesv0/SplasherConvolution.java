@@ -41,6 +41,24 @@ public class SplasherConvolution {
     }
 
     /*
+     * Arranges robots into a grid.
+     * @param rc RobotController at the center of the grid
+     * @param nearbyTiles a list of MapInfo tiles.
+     * @param radius The expected radius of tiles. If the radius is 1, the grid will be 3x3
+     */
+    public static RobotInfo[][] arrangeRobotInfos(RobotController rc, RobotInfo[] nearbyRobots, int radius) {
+        RobotInfo[][] grid = new RobotInfo[radius * 2 + 1][radius * 2 + 1];
+        for (RobotInfo robot: nearbyRobots) {
+            if (Math.abs(robot.getLocation().x - rc.getLocation().x) <= radius &&
+                    Math.abs(robot.getLocation().y - rc.getLocation().y) <= radius) {
+                grid[robot.getLocation().x - rc.getLocation().x + radius]
+                        [robot.getLocation().y - rc.getLocation().y + radius] = robot;
+            }
+        }
+        return grid;
+    }
+
+    /*
      * Returns a matrix whose elements are the desirability for that tile to be attacked by a splasher.
      * A larger element indicates that it is a desirable place for a splasher to attack.
      * The robot's tile is in the middle. (n / 2, n / 2) using integer division.
@@ -181,6 +199,174 @@ public class SplasherConvolution {
             }
             // if that location couldn't be attacked, set it to false
             attemptAttack[maxi][maxj] = false;
+        }
+    }
+
+
+
+    /*
+     * Arranges tiles into a flat grid.
+     * Tiles accessed by x * sidenlength + y
+     * @param rc RobotController at the center of the grid
+     * @param nearbyTiles a list of MapInfo tiles.
+     * @param radius The expected radius of tiles. If the radius is 1, the grid will be 3x3
+     */
+    public static MapInfo[] arrangeMapInfosFlat(RobotController rc, MapInfo[] nearbyTiles, int radius) {
+        int side = radius * 2 + 1;
+        MapInfo[] grid = new MapInfo[side * side];
+        for (MapInfo tile : nearbyTiles) {
+            if (Math.abs(tile.getMapLocation().x - rc.getLocation().x) <= radius &&
+                    Math.abs(tile.getMapLocation().y - rc.getLocation().y) <= radius) {
+                grid[
+                        side * (tile.getMapLocation().x - rc.getLocation().x + radius) +
+                                tile.getMapLocation().y - rc.getLocation().y + radius
+                        ] = tile;
+            }
+        }
+        return grid;
+    }
+
+    /*
+     * Arranges robots into a flat grid.
+     * @param rc RobotController at the center of the grid
+     * @param nearbyTiles a list of MapInfo tiles.
+     * @param radius The expected radius of tiles. If the radius is 1, the grid will be 3x3
+     */
+    public static RobotInfo[] arrangeRobotInfosFlat(RobotController rc, RobotInfo[] nearbyRobots, int radius) {
+        int side = radius * 2 + 1;
+        RobotInfo[] grid = new RobotInfo[side * side];
+        for (RobotInfo robot : nearbyRobots) {
+            if (radius == 4 || (Math.abs(robot.getLocation().x - rc.getLocation().x) <= radius &&
+                    Math.abs(robot.getLocation().y - rc.getLocation().y) <= radius)) {
+                grid[
+                        side * (robot.getLocation().x - rc.getLocation().x + radius) +
+                                robot.getLocation().y - rc.getLocation().y + radius
+                        ] = robot;
+            }
+        }
+        return grid;
+    }
+
+    // Indexes for the fringes/center of an attack pattern in the 9x9 grid relative to an attack location in a 9x9 grid
+    static final int[] attackFringes = new int[]{-18, -2, 2, 18};
+    static final int[] attackCenter = new int[]{
+            -10, -9, -8,
+            -1, 0, 1,
+            8, 9, 10
+    };
+    static final int[] attackToInfo = new int[]{
+            20, 21, 22, 23, 24,
+            29, 30, 31, 32, 33,
+            38, 39, 40, 41, 42,
+            47, 48, 49, 50, 51,
+            56, 57, 58, 59, 60
+    };
+    /*
+     * Returns the total reward for attacking anywhere on a 5x5 grid, considering:
+     *   Every tile in every potential attack zone
+     *   Enemy towers
+     *   Out of bounds/blocking tiles
+     *   Outer fringes are not painted if it's an enemy square
+     *   It is a waste to paint already painted squares
+     *   It is a really big waste if the secondary color of an incomplete tower is painted
+     */
+    public static float[] computeAttackTotals(RobotController rc, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) {
+        MapInfo[] mapInfoGrid = arrangeMapInfosFlat(rc, nearbyTiles, 4); // 9x9 center at 4, 4
+        RobotInfo[] robotInfoGrid = arrangeRobotInfosFlat(rc, nearbyRobots, 4); // 9x9 center at 4,4
+        float[] attackTotals = new float[25]; // 5x5, center at 2,2
+        for (int attackIndex = 0; attackIndex < 25; attackIndex++) { // attackTotals index
+            int attackLocation = attackToInfo[attackIndex];
+            assert (attackLocation == 9 * (attackIndex / 5) + attackIndex % 5 + 20);
+            for (int fringeOffset : attackFringes) {
+                MapInfo tile = mapInfoGrid[attackLocation + fringeOffset];
+                if (tile == null) {
+                    continue;
+                }
+                PaintType color = tile.getPaint();
+                if (color.isAlly()) {
+                    if (tile.getMark().isSecondary()) {
+                        // bad to paint over a secondary color if the tower is under construction
+                        attackTotals[attackIndex] -= 1.0f;
+                    } // otherwise it's just a waste, so 0 by default
+                    continue;
+                }
+                RobotInfo robot = robotInfoGrid[attackLocation + fringeOffset];
+                if (robot != null && robot.getType().isTowerType() && !robot.getTeam().equals(rc.getTeam())) {
+                    // if it's an enemy tower, then that's the best thing to attack
+                    attackTotals[attackIndex] += 100.0f;
+                    continue;
+                }
+                if (color.equals(PaintType.EMPTY) && tile.isPassable()) {
+                    attackTotals[attackIndex] += 1.0f;
+                }
+            }
+            for (int attackCenterOffset : attackCenter) {
+                MapInfo tile = mapInfoGrid[attackLocation + attackCenterOffset];
+                if (tile == null) {
+                    continue;
+                }
+                PaintType color = tile.getPaint();
+                if (color.isAlly()) {
+                    if (tile.getMark().isSecondary()) {
+                        attackTotals[attackIndex] -= 1.0f;
+                    }
+                    continue;
+                }
+                if (color.equals(PaintType.ENEMY_PRIMARY) || color.equals(PaintType.ENEMY_SECONDARY)) {
+                    // splashers can paint over enemy tiles here
+                    attackTotals[attackIndex] += 2.0f;
+                    continue;
+                }
+                RobotInfo robot = robotInfoGrid[attackLocation + attackCenterOffset];
+                if (robot != null && robot.getType().isTowerType() && !robot.getTeam().equals(rc.getTeam())) {
+                    attackTotals[attackIndex] += 100.0f;
+                    continue;
+                }
+                if (tile.isPassable()) {
+                    // neutral tile
+                    attackTotals[attackIndex] += 1.0f;
+                }
+            }
+        }
+        return attackTotals;
+    }
+
+    public static int[] attackableIndices = new int[]{
+                     2,
+                 6,  7,  8,
+            10, 11, 12, 13, 14,
+                15, 16, 17,
+                    21
+    };
+    public static boolean attackBestFlat(RobotController rc, MapInfo[] nearbyTiles, float[] attackTotals, float threshold) {
+        MapInfo[] mapInfoGrid = arrangeMapInfosFlat(rc, nearbyTiles, 2);
+        boolean[] attemptAttack = new boolean[25];
+        while (true) {
+            float maxFound = threshold - 1;
+            int maxIndex = -1;
+            for (int attackableIndex : attackableIndices) {
+                if (attemptAttack[attackableIndex]) continue;
+                if (attackTotals[attackableIndex] > maxFound) {
+                    maxFound = attackTotals[attackableIndex];
+                    maxIndex = attackableIndex;
+                }
+            }
+            if (maxFound < threshold) {
+                // no good attack spot found
+                return false;
+            }
+            if (mapInfoGrid[maxIndex] != null && rc.canAttack(mapInfoGrid[maxIndex].getMapLocation())) {
+                try {
+                    rc.attack(mapInfoGrid[maxIndex].getMapLocation());
+                    return true;
+                } catch (GameActionException gae) {
+                    System.out.println("Exception in SplasherConvolution.attackBest()");
+                    System.out.println(gae.getMessage());
+                    gae.printStackTrace();
+                }
+            }
+            // if that location couldn't be attacked, set it to false
+            attemptAttack[maxIndex] = true;
         }
     }
 }

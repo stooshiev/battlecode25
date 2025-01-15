@@ -670,12 +670,11 @@ public class RobotPlayer {
 
         if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT && rc.getPaint() >= UnitType.SPLASHER.attackCost) {
             // if it can attack, look around and maybe attack
-            float[][] affinities = SplasherConvolution.attackAffinities(rc, nearbyTiles);
-            float[][] attackValues = SplasherConvolution.convolve3(affinities);
-            boolean attacked = SplasherConvolution.attackBest(rc, nearbyTiles, attackValues, threshold);
+            float[] damageTotals = SplasherConvolution.computeAttackTotals(rc, nearbyTiles, nearbyRobots);
+            boolean attacked = SplasherConvolution.attackBestFlat(rc, nearbyTiles, damageTotals, threshold);
             if (attacked) {
-                threshold = 7.5f;
-            } else if (threshold < 3.0f) {
+                threshold = 15.0f;
+            } else if (threshold > 3.0f) {
                 threshold -= 0.1f;
             }
         }
