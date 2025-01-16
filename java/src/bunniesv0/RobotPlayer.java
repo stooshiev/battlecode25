@@ -68,7 +68,7 @@ public class RobotPlayer {
      **/
     @SuppressWarnings("unused")
     public static void run(RobotController rc) throws GameActionException {
-        rng = new Random(RANDOM_SEED + rc.getRoundNum());
+        rng = new Random(RANDOM_SEED + 60 * 60 * rc.getRoundNum() + 60 * rc.getLocation().x + rc.getLocation().y);
         // Hello world! Standard output is very useful for debugging.
         // Everything you say here will be directly viewable in your terminal when you run a match!
         System.out.println("I'm alive");
@@ -373,7 +373,7 @@ public class RobotPlayer {
 	        //if there is enemy paint robot can mop; center means no nearby enemy paint that can be attacked
 	        else if (!attackDirection.equals(Direction.CENTER)) {
 	        	if (rc.isActionReady()) {
-	        		System.out.println("ATTACKING IN DIRECTION: " + attackDirection.toString());
+	        		System.out.println("ATTACKING IN DIRECTION: " + attackDirection);
 	        		rc.attack(currentLocation.add(attackDirection));
 	        		dir = attackDirection;
 	        	}
@@ -395,7 +395,7 @@ public class RobotPlayer {
         	//if there is enemy paint robot can mop; center means no nearby enemy paint that can be attacked, run this part again bc exception caused it to not run
         	if (!attackDirection.equals(Direction.CENTER)) {
 	        	if (rc.isActionReady()) {
-	        		System.out.println("ATTACKING IN DIRECTION: " + attackDirection.toString());
+	        		System.out.println("ATTACKING IN DIRECTION: " + attackDirection);
 	        		rc.attack(currentLocation.add(attackDirection));
 	        		dir = attackDirection;
 	        	}
