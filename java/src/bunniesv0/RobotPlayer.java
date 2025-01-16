@@ -469,14 +469,17 @@ public class RobotPlayer {
     static Direction splasherDirection = null;
     static float threshold = 9.0f;
     static void runSplasher(RobotController rc) throws GameActionException {
-        MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
-        RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
+        MapInfo[] nearbyTiles = rc.senseNearbyMapInfos(); // 100
+        RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); // 100
+        /*
         int markRuinStatus = MarkRuin.markIfFound(rc, nearbyTiles, nearbyRobots,
                 MarkRuin.INITIAL_TOWERS[rng.nextInt(MarkRuin.INITIAL_TOWERS.length - 1)]);
 
+         */
+        int markRuinStatus = 0;
         if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT && rc.getPaint() >= UnitType.SPLASHER.attackCost) {
             // if it can attack, look around and maybe attack
-            float[] damageTotals = SplasherConvolution.computeAttackTotals(rc, nearbyTiles, nearbyRobots);
+            float[] damageTotals = SplasherConvolution.computeAttackTotalsMinimal(rc, nearbyTiles, nearbyRobots);
             boolean attacked = SplasherConvolution.attackBestFlat(rc, nearbyTiles, damageTotals, threshold);
             if (attacked) {
                 threshold = 15.0f;

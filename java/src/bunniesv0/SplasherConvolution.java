@@ -2,6 +2,8 @@ package bunniesv0;
 
 import battlecode.common.*;
 
+import java.util.ArrayList;
+
 import static java.lang.Math.*;
 
 public class SplasherConvolution {
@@ -215,12 +217,10 @@ public class SplasherConvolution {
         int side = radius * 2 + 1;
         MapInfo[] grid = new MapInfo[side * side];
         for (MapInfo tile : nearbyTiles) {
-            if (Math.abs(tile.getMapLocation().x - rc.getLocation().x) <= radius &&
-                    Math.abs(tile.getMapLocation().y - rc.getLocation().y) <= radius) {
-                grid[
-                        side * (tile.getMapLocation().x - rc.getLocation().x + radius) +
-                                tile.getMapLocation().y - rc.getLocation().y + radius
-                        ] = tile;
+            int xOffset = tile.getMapLocation().x - rc.getLocation().x;
+            int yOffset = tile.getMapLocation().y - rc.getLocation().y;
+            if (Math.abs(xOffset) <= radius && Math.abs(yOffset) <= radius) {
+                grid[side * (xOffset + radius) + yOffset + radius] = tile;
             }
         }
         return grid;
@@ -368,5 +368,142 @@ public class SplasherConvolution {
             // if that location couldn't be attacked, set it to false
             attemptAttack[maxIndex] = true;
         }
+    }
+
+    // these generate the upcoming lookup tables
+    public static int[][][] fringeTable() {
+        int[][] fringeOffsets = new int[][]{{2, 0}, {0, 2}, {-2, 0}, {0, -2}};
+        int[][][] table = new int[9][9][];
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                ArrayList<Integer> fringes = new ArrayList<Integer>();
+                for (int[] offset : fringeOffsets) {
+                    int fringeI = i + offset[0];
+                    int fringeJ = j + offset[1];
+                    if (2 <= fringeI && fringeI < 7 && 2 <= fringeJ && fringeJ < 7) {
+                        int fiveIndex = 5 * (fringeI - 2) + (fringeJ - 2);
+                        fringes.add(fiveIndex);
+                    }
+                }
+                table[i][j] = new int[fringes.size()];
+                for (int n = 0; n < fringes.size(); n++) {
+                    table[i][j][n] = fringes.get(n);
+                }
+            }
+        }
+        return table;
+    }
+    public static int[][][] centerTable() {
+        int[][][] table = new int[9][9][];
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                ArrayList<Integer> fringes = new ArrayList<Integer>();
+                for (int ioffset = -1; ioffset < 2; ioffset++) {
+                    for (int joffset = -1; joffset < 2; joffset++) {
+                        int centerI = i + ioffset;
+                        int centerJ = j + joffset;
+                        if (2 <= centerI && centerI < 7 && 2 <= centerJ && centerJ < 7) {
+                            int fiveIndex = 5 * (centerI - 2) + (centerJ - 2);
+                            fringes.add(fiveIndex);
+                        }
+                    }
+                }
+                table[i][j] = new int[fringes.size()];
+                for (int n = 0; n < fringes.size(); n++) {
+                    table[i][j][n] = fringes.get(n);
+                }
+            }
+        }
+        return table;
+    }
+
+    static int[][][] offsetPairToFringes = new int[][][]{
+            {{}, {}, {0}, {1}, {2}, {3}, {4}, {}, {}},
+            {{}, {}, {5}, {6}, {7}, {8}, {9}, {}, {}},
+            {{0}, {1}, {10, 2}, {11, 3}, {12, 4, 0}, {13, 1}, {14, 2}, {3}, {4}},
+            {{5}, {6}, {15, 7}, {16, 8}, {17, 9, 5}, {18, 6}, {19, 7}, {8}, {9}},
+            {{10}, {11}, {20, 12, 0}, {21, 13, 1}, {22, 14, 2, 10}, {23, 3, 11}, {24, 4, 12}, {13}, {14}},
+            {{15}, {16}, {17, 5}, {18, 6}, {19, 7, 15}, {8, 16}, {9, 17}, {18}, {19}},
+            {{20}, {21}, {22, 10}, {23, 11}, {24, 12, 20}, {13, 21}, {14, 22}, {23}, {24}},
+            {{}, {}, {15}, {16}, {17}, {18}, {19}, {}, {}},
+            {{}, {}, {20}, {21}, {22}, {23}, {24}, {}, {}}
+    };
+    static int[][][] offsetPairToCenter = new int[][][]{
+            {{}, {}, {}, {}, {}, {}, {}, {}, {}},
+            {{}, {0}, {0, 1}, {0, 1, 2}, {1, 2, 3}, {2, 3, 4}, {3, 4}, {4}, {}},
+            {{}, {0, 5}, {0, 1, 5, 6}, {0, 1, 2, 5, 6, 7}, {1, 2, 3, 6, 7, 8}, {2, 3, 4, 7, 8, 9}, {3, 4, 8, 9}, {4, 9}, {}},
+            {{}, {0, 5, 10}, {0, 1, 5, 6, 10, 11}, {0, 1, 2, 5, 6, 7, 10, 11, 12}, {1, 2, 3, 6, 7, 8, 11, 12, 13}, {2, 3, 4, 7, 8, 9, 12, 13, 14}, {3, 4, 8, 9, 13, 14}, {4, 9, 14}, {}},
+            {{}, {5, 10, 15}, {5, 6, 10, 11, 15, 16}, {5, 6, 7, 10, 11, 12, 15, 16, 17}, {6, 7, 8, 11, 12, 13, 16, 17, 18}, {7, 8, 9, 12, 13, 14, 17, 18, 19}, {8, 9, 13, 14, 18, 19}, {9, 14, 19}, {}},
+            {{}, {10, 15, 20}, {10, 11, 15, 16, 20, 21}, {10, 11, 12, 15, 16, 17, 20, 21, 22}, {11, 12, 13, 16, 17, 18, 21, 22, 23}, {12, 13, 14, 17, 18, 19, 22, 23, 24}, {13, 14, 18, 19, 23, 24}, {14, 19, 24}, {}},
+            {{}, {15, 20}, {15, 16, 20, 21}, {15, 16, 17, 20, 21, 22}, {16, 17, 18, 21, 22, 23}, {17, 18, 19, 22, 23, 24}, {18, 19, 23, 24}, {19, 24}, {}},
+            {{}, {20}, {20, 21}, {20, 21, 22}, {21, 22, 23}, {22, 23, 24}, {23, 24}, {24}, {}},
+            {{}, {}, {}, {}, {}, {}, {}, {}, {}}
+    };
+
+    /*
+     * Compute attack totals without initializing arrays larger than 5x5
+     */
+    static float[] computeAttackTotalsMinimal(RobotController rc, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) {
+        float[] attackTotals = new float[25];
+        MapLocation rcLoc = rc.getLocation();
+        // loop through tiles, editing attack totals accordingly
+        boolean foundTower = false;
+        for (RobotInfo robot : nearbyRobots) {
+            if (robot.getType().isTowerType() && !robot.getTeam().equals(rc.getTeam())) {
+                // if it's an enemy tower, then that's the best thing to attack
+                MapLocation robotLoc = robot.getLocation();
+                int xDiff = robotLoc.x - rcLoc.x;
+                int yDiff = robotLoc.y - rcLoc.y;
+                if (Math.abs(xDiff) + Math.abs(yDiff) <= 4) {
+                    for (int fiveIndex : offsetPairToCenter[xDiff + 4][yDiff + 4]) {
+                        attackTotals[fiveIndex] += 100.0f;
+                    }
+                    for (int fiveIndex : offsetPairToFringes[xDiff + 4][yDiff + 4]) {
+                        attackTotals[fiveIndex] += 100.0f;
+                    }
+                }
+                foundTower = true;
+                break;
+            }
+        }
+        if (foundTower) {
+            return attackTotals;
+        }
+        for (MapInfo tile : nearbyTiles) {
+            MapLocation tileLoc = tile.getMapLocation();
+            int xDiff = tileLoc.x - rcLoc.x;
+            int yDiff = tileLoc.y - rcLoc.y;
+            // disregard tiles that are too far away to be attacked
+            if (Math.abs(xDiff) + Math.abs(yDiff) > 4) {
+                continue;
+            }
+
+            float centerContribution = 0.0f;
+            float fringeContribution = 0.0f;
+            PaintType color = tile.getPaint();
+            if (color.isAlly() && tile.getMark().isSecondary()) {
+                centerContribution = -1.0f;
+                fringeContribution = -1.0f;
+            }
+            else if (!color.isAlly()) {
+                if (color.equals(PaintType.ENEMY_PRIMARY) || color.equals(PaintType.ENEMY_SECONDARY)) {
+                    // splashers can paint over enemy tiles here
+                    centerContribution = 2.0f;
+                    fringeContribution = 0.0f;
+                } else if (tile.isPassable()) {
+                    // neutral tile
+                    centerContribution = 1.0f;
+                    fringeContribution = 1.0f;
+                }
+            }
+            // this is the meat of the operation
+            for (int fiveIndex : offsetPairToCenter[xDiff + 4][yDiff + 4]) {
+                attackTotals[fiveIndex] += centerContribution;
+            }
+            for (int fiveIndex : offsetPairToFringes[xDiff + 4][yDiff + 4]) {
+                attackTotals[fiveIndex] += fringeContribution;
+            }
+        }
+        return attackTotals;
     }
 }
