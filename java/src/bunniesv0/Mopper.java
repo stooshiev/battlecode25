@@ -119,8 +119,8 @@ public class Mopper extends RobotPlayer{
     }
     
     //Finds the best direction to strike; currently swings in direction with most robots, if no robots, returns center
-    public static Direction optimalSwing(RobotController rc, RobotInfo[] enemyRobots) {
-    	int[] swingValues = getSwingValues(rc, enemyRobots);
+    public static Direction optimalSwing(RobotController rc) {
+    	int[] swingValues = getSwingValues(rc);
     	int maxInd = 0; int maxVal = 0;
     	
     	for (int ind = 0; ind < 4; ind++) {
@@ -137,8 +137,8 @@ public class Mopper extends RobotPlayer{
     	
     }
     
-    //Calculates how many robots are hit in a single swing for all cardinal directions
-    public static int[] getSwingValues(RobotController rc, RobotInfo[] enemyRobots) {
+    //Calculates how many robots are hit in a single swing for all cardinal directions (DEPRECATED SINCE VERSION 2.0.0)
+    /*public static int[] getSwingValues(RobotController rc, RobotInfo[] enemyRobots) {
     	int[] swingValues = {0, 0, 0, 0}; //Index 0: NORTH, Index 1: EAST, Index 2: SOUTH, Index 3: WEST 
     	
     	//Return all 0s if there are no enemy robots around (obviously)
@@ -160,6 +160,68 @@ public class Mopper extends RobotPlayer{
     	}
     	
      	return swingValues;
+    }*/
+    
+  //Calculates how many robots are hit in a single swing for all cardinal directions
+    public static int[] getSwingValues(RobotController rc) {
+    	int[] swingValues = {0, 0, 0, 0}; //Index 0: NORTH, Index 1: EAST, Index 2: SOUTH, Index 3: WEST 
+    	MapLocation currentLoc = rc.getLocation();
+    	
+    	//all relative locations hit (e.g. (+1, +1) from current location) for each cardinal direction
+    	int[] NorthRLocsX = {0, 0, 1, 1, -1, -1};
+    	int[] NorthRLocsY = {1, 2, 1, 2, 1, 2};
+    	int[] EastRLocsX = {1, 2, 1, 2, 1, 2};
+    	int[] EastRLocsY = {0, 0, 1, 1, -1, -1};
+    	int[] SouthRLocsX = {0, 0, 1, 1, -1, -1};
+    	int[] SouthRLocsY = {-1, -2, -1, -2, -1, -2};
+    	int[] WestRLocsX = {-1, -2, -1, -2, -1, -2};
+    	int[] WestRLocsY = {0, 0, 1, 1, -1, -1};
+    	
+    	//each direction has 6 tiles to check
+    	for (int i = 0; i < 6; i++) {
+    		try {
+    			//uses senseRobotAtLocation instead of canSenseRobotAtLocation in case location is out of bounds
+    			boolean isRobotN = rc.senseRobotAtLocation(currentLoc.translate(NorthRLocsX[i], NorthRLocsY[i])) == null; 
+    			if (isRobotN) {
+    				swingValues[0] += 1;
+    			}
+    		}
+    		catch (GameActionException e) {
+    			//do nothing
+    		}
+    		try {
+    			//uses senseRobotAtLocation instead of canSenseRobotAtLocation in case location is out of bounds
+    			boolean isRobotE = rc.senseRobotAtLocation(currentLoc.translate(EastRLocsX[i], EastRLocsY[i])) == null; 
+    			if (isRobotE) {
+    				swingValues[1] += 1;
+    			}
+    		}
+    		catch (GameActionException e) {
+    			//do nothing
+    		}
+    		try {
+    			//uses senseRobotAtLocation instead of canSenseRobotAtLocation in case location is out of bounds
+    			boolean isRobotS = rc.senseRobotAtLocation(currentLoc.translate(SouthRLocsX[i], SouthRLocsY[i])) == null; 
+    			if (isRobotS) {
+    				swingValues[2] += 1;
+    			}
+    		}
+    		catch (GameActionException e) {
+    			//do nothing
+    		}
+    		try {
+    			//uses senseRobotAtLocation instead of canSenseRobotAtLocation in case location is out of bounds
+    			boolean isRobotW = rc.senseRobotAtLocation(currentLoc.translate(WestRLocsX[i], WestRLocsY[i])) == null; 
+    			if (isRobotW) {
+    				swingValues[3] += 1;
+    			}
+    		}
+    		catch (GameActionException e) {
+    			//do nothing
+    		}
+    	}
+    	
+    	return swingValues;
     }
     
 	//Checks for enemy robots in a certain direction 

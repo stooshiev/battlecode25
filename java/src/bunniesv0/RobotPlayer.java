@@ -303,7 +303,7 @@ public class RobotPlayer {
 //        Direction dir = directions[rng.nextInt(directions.length)];
     	Direction dir = prevDir;
         
-    	if (rng.nextInt(10 + rc.getRoundNum()/100) == 0) { //random chance (lower later into the game) to turn left or right; encourages exploration
+    	if (rng.nextInt(10 + rc.getRoundNum()/10) == 0) { //random chance (lower later into the game) to turn left or right; encourages exploration
     		
     		int directionDecider = rng.nextInt(2); 
     		
@@ -349,7 +349,7 @@ public class RobotPlayer {
 	        }
 	        //if there is enemy paint robot can mop; center means no nearby enemy paint that can be attacked
 	        else if (!attackDirection.equals(Direction.CENTER)) {
-	        	dir = Direction.CENTER;
+	        	dir = attackDirection;
 	        	nextLocation = currentLocation;
 	        	if (rc.isActionReady()) {
 	        		System.out.println("ATTACKING IN DIRECTION: " + attackDirection.toString());
@@ -369,22 +369,33 @@ public class RobotPlayer {
 	        	}
 	        }
             // set dir to center because the previous direction was off the map
-            dir = Direction.CENTER;
+            dir = attackDirection;
         }
         
         
-        RobotInfo[] allSeenEnemyRobots = Mopper.findEnemyRobots(rc);
-        RobotInfo[] allSeenFriendlyRobots = Mopper.findFriendlyRobots(rc);
-        Direction paintTowerDir = dir; //direction of nearest paint tower; default = dir if the following if statement is not satisfied
-        boolean isLowOnPaint = rc.getPaint() < 50; //the threshold 50 should be changed to an adjustable variable 
-        boolean isTowerAdjacent = false; //only true when adjacent to paint tower and low on paint bc otherwise it will not update
-        //low on paint or too many nearby enemies or low on health
-    	if (isLowOnPaint || allSeenEnemyRobots.length > allSeenFriendlyRobots.length + 2 || rc.getHealth() < 20) { //retreat case
-    		MapLocation nearestPaintTowerLoc = Mopper.findNearestStructure(rc, 2);
-    		paintTowerDir = currentLocation.directionTo(nearestPaintTowerLoc);
+//        RobotInfo[] allSeenEnemyRobots = Mopper.findEnemyRobots(rc);
+//        RobotInfo[] allSeenFriendlyRobots = Mopper.findFriendlyRobots(rc);
+        MapLocation nearestPaintTowerLoc = Mopper.findNearestStructure(rc, 2);
+        Direction paintTowerDir = currentLocation.directionTo(nearestPaintTowerLoc); //direction of nearest paint tower; default = dir if the following if statement is not satisfied
+        boolean isLowOnPaint = rc.getPaint() < 30; //the threshold 50 should be changed to an adjustable variable 
+        boolean isTowerAdjacent = currentLocation.add(paintTowerDir).equals(nearestPaintTowerLoc); 
+        
+        //if low on paint and adjacent to a paint tower
+        if (isLowOnPaint && isTowerAdjacent) {
+    		int paintInTower = rc.senseRobotAtLocation(currentLocation.add(paintTowerDir)).getPaintAmount();
+    		int transferAmount = Math.max(-paintInTower, rc.getPaint()-90); //needs to be the lesser magnitude of the two; hence the max not min
+    		if (rc.canTransferPaint(currentLocation.add(paintTowerDir), transferAmount)) {
+//                System.out.println("TRANSFERING PAINT | PAINT AMOUNT: " + transferAmount);
+                rc.transferPaint(currentLocation.add(paintTowerDir), transferAmount);
+            }
+    		
+    		dir = paintTowerDir.opposite(); //move away from paint tower after done transferring
+    	}
+        
+        //low on paint or low on health
+        else if (isLowOnPaint || rc.getHealth() < 30) { //retreat case
     		dir = paintTowerDir;
-    		isTowerAdjacent = currentLocation.add(paintTowerDir).equals(nearestPaintTowerLoc); 
-    		System.out.println("I AM TRYING TO RETURN TO PAINT TOWER, DIRECTION: " + paintTowerDir.toString() + " IS TOWER ADJACENT: " + isTowerAdjacent);
+//    		System.out.println("I AM TRYING TO RETURN TO PAINT TOWER, DIRECTION: " + paintTowerDir.toString() + " IS TOWER ADJACENT: " + isTowerAdjacent);
     	}
     	
     	//Reupdate nextLocation in case direction was changed
@@ -418,15 +429,6 @@ public class RobotPlayer {
         	dir = Direction.CENTER;
         }
     	
-        //if low on paint and adjacent to a paint tower
-    	if (isLowOnPaint && isTowerAdjacent) {
-    		int paintInTower = rc.senseRobotAtLocation(currentLocation.add(paintTowerDir)).getPaintAmount();
-    		int transferAmount = Math.max(-paintInTower, rc.getPaint()-80); //needs to be the lesser magnitude of the two; hence the max not min
-    		if (rc.canTransferPaint(currentLocation.add(paintTowerDir), transferAmount)) {
-                System.out.println("TRANSFERING PAINT | PAINT AMOUNT: " + transferAmount);
-                rc.transferPaint(currentLocation.add(paintTowerDir), transferAmount);
-            }
-    	}
         
         //Reupdate nextLocation in case direction was changed
         nextLocation = currentLocation.add(dir);
@@ -445,13 +447,17 @@ public class RobotPlayer {
         
         currentLocation = nextLocation; //update current location post moving
         
-    	RobotInfo[] enemyRobotsInSwingRadius = Mopper.findEnemyRobots(rc, 1); //find all enemy robots within swinging distance
-    	Direction swingDir = Mopper.optimalSwing(rc, enemyRobotsInSwingRadius); //find best direction to swing
-    	
-    	//if swingDir is center that means no enemies around 
-    	if (!swingDir.equals(Direction.CENTER) && rc.canMopSwing(swingDir)) {
-    		rc.mopSwing(swingDir);
-    		System.out.println("I did a mop swing and actually hit an enemy...");
+        //END OF MOVEMENT FOR MOPPER
+        
+    	RobotInfo[] enemyRobotsInSwingRadius = Mopper.findEnemyRobots(rc, 2); //find all enemy robots within swinging distance
+    	if (enemyRobotsInSwingRadius.length > 0) {
+    		Direction swingDir = Mopper.optimalSwing(rc); //find best direction to swing
+        	
+        	//if swingDir is center that means no enemies around 
+        	if (!swingDir.equals(Direction.CENTER) && rc.canMopSwing(swingDir)) {
+        		rc.mopSwing(swingDir);
+//        		System.out.println("I did a mop swing and actually hit an enemy...");
+        	}
     	}
     	
         prevDir = dir; //update previous direction
