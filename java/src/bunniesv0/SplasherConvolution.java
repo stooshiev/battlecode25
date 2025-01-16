@@ -3,24 +3,47 @@ package bunniesv0;
 import battlecode.common.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import static java.lang.Math.*;
 
 public class SplasherConvolution {
-    public static int[] attackableIndices = new int[]{
+    // float[passable][paint type][secondary mark][fringe=0, center=1]
+    static final float[][][] fringeDamageArray = new float[][][] {
+            // empty
+            {{0, 0}}, // tile is impassible
+            // empty, ally1, ally2,   enemy1, enemy2
+            {{1, 1}, {0, 0}, {0, -1}, {0, 0}, {0, 0}} // tile is passable
+    };
+    static final float[][][] centerDamageArray = new float[][][] {
+            // empty
+            {{0, 0}}, // impassible
+            // empty, ally1, ally2,   enemy1, enemy2
+            {{1, 1}, {0, 0}, {0, -1}, {2, 2}, {2, 2}} // passable
+    };
+    static final int[] attackableIndices = new int[]{
                  2,
              6,  7,  8,
         10, 11, 12, 13, 14,
             15, 16, 17,
                 21
     };
-    public static boolean[] canAttack = new boolean[]{
+    static final boolean[] canAttack = new boolean[]{
             false, false, true, false, false,
             false, true, true, true, false,
             true, true, true, true, true,
             false, true, true, true, false,
             false, false, true, false, false
+    };
+    static final boolean[][] attackCanReach = new boolean[][] {
+            {false, false, false, false, true, false, false, false, false},
+            {false, false, false, true,  true, true,  false, false, false},
+            {false, false, true,  true,  true, true,  true,  false, false},
+            {false, true,  true,  true,  true, true,  true,  true,  false},
+            {true,  true,  true,  true,  true, true,  true,  true,  true},
+            {false, true,  true,  true,  true, true,  true,  true,  false},
+            {false, false, true,  true,  true, true,  true,  false, false},
+            {false, false, false, true,  true, true,  false, false, false},
+            {false, false, false, false, true, false, false, false, false},
     };
     // these generate the upcoming lookup tables
     public static int[][][] fringeTable() {
@@ -100,21 +123,25 @@ public class SplasherConvolution {
      * Compute attack totals without initializing arrays larger than 5x5
      */
     static float[] computeAttackTotalsMinimal(RobotController rc, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) {
+        int bytecodes1 = Clock.getBytecodeNum();
         float[] attackTotals = new float[25];
         MapLocation rcLoc = rc.getLocation();
+        if (rc.getRoundNum() > 67) {
+            int dsjkfjk = 0;
+        }
         // loop through tiles, editing attack totals accordingly
         boolean foundTower = false;
         for (RobotInfo robot : nearbyRobots) {
             if (robot.getType().isTowerType() && !robot.getTeam().equals(rc.getTeam())) {
                 // if it's an enemy tower, then that's the best thing to attack
                 MapLocation robotLoc = robot.getLocation();
-                int xDiff = robotLoc.x - rcLoc.x;
-                int yDiff = robotLoc.y - rcLoc.y;
-                if (Math.abs(xDiff) + Math.abs(yDiff) <= 4) {
-                    for (int fiveIndex : offsetPairToCenter[xDiff + 4][yDiff + 4]) {
+                int xIndex = robotLoc.x - rcLoc.x + 4;
+                int yIndex = robotLoc.y - rcLoc.y + 4;
+                if (attackCanReach[xIndex][yIndex]) {
+                    for (int fiveIndex : offsetPairToCenter[xIndex][yIndex]) {
                         attackTotals[fiveIndex] += 100.0f;
                     }
-                    for (int fiveIndex : offsetPairToFringes[xDiff + 4][yDiff + 4]) {
+                    for (int fiveIndex : offsetPairToFringes[xIndex][yIndex]) {
                         attackTotals[fiveIndex] += 100.0f;
                     }
                 }
@@ -122,43 +149,36 @@ public class SplasherConvolution {
                 break;
             }
         }
+        int bytecodes2 = Clock.getBytecodeNum();
         if (foundTower) {
             return attackTotals;
         }
         for (MapInfo tile : nearbyTiles) {
+            int bytecodes3 = Clock.getBytecodeNum();
             MapLocation tileLoc = tile.getMapLocation();
-            int xDiff = tileLoc.x - rcLoc.x;
-            int yDiff = tileLoc.y - rcLoc.y;
+            int xIndex = tileLoc.x - rcLoc.x + 4;
+            int yIndex = tileLoc.y - rcLoc.y + 4;
             // disregard tiles that are too far away to be attacked
-            if (Math.abs(xDiff) + Math.abs(yDiff) > 4) {
+            if (!attackCanReach[xIndex][yIndex]) {
                 continue;
             }
+            int bytecodes4 = Clock.getBytecodeNum();
+            int passible = tile.isPassable() ? 1 : 0;
+            int paint = tile.getPaint().ordinal();
+            int secondaryMark = tile.getMark().isSecondary() ? 1 : 0;
+            float fringeContribution = fringeDamageArray[passible][paint][secondaryMark];
+            float centerContribution = centerDamageArray[passible][paint][secondaryMark];
+            int bytecodes5 = Clock.getBytecodeNum();
 
-            float centerContribution = 0.0f;
-            float fringeContribution = 0.0f;
-            PaintType color = tile.getPaint();
-            if (color.isAlly() && tile.getMark().isSecondary()) {
-                centerContribution = -1.0f;
-                fringeContribution = -1.0f;
-            }
-            else if (!color.isAlly()) {
-                if (color.equals(PaintType.ENEMY_PRIMARY) || color.equals(PaintType.ENEMY_SECONDARY)) {
-                    // splashers can paint over enemy tiles here
-                    centerContribution = 2.0f;
-                    fringeContribution = 0.0f;
-                } else if (tile.isPassable()) {
-                    // neutral tile
-                    centerContribution = 1.0f;
-                    fringeContribution = 1.0f;
-                }
-            }
             // this is the meat of the operation
-            for (int fiveIndex : offsetPairToCenter[xDiff + 4][yDiff + 4]) {
+            for (int fiveIndex : offsetPairToCenter[xIndex][yIndex]) {
                 attackTotals[fiveIndex] += centerContribution;
             }
-            for (int fiveIndex : offsetPairToFringes[xDiff + 4][yDiff + 4]) {
+            for (int fiveIndex : offsetPairToFringes[xIndex][yIndex]) {
                 attackTotals[fiveIndex] += fringeContribution;
             }
+            int bytecodes6 = Clock.getBytecodeNum();
+            continue;
         }
         return attackTotals;
     }
@@ -375,7 +395,7 @@ public class SplasherConvolution {
         for (MapInfo tile : nearbyTiles) {
             int xOffset = tile.getMapLocation().x - rc.getLocation().x;
             int yOffset = tile.getMapLocation().y - rc.getLocation().y;
-            if (Math.abs(xOffset) <= radius && Math.abs(yOffset) <= radius) {
+            if (abs(xOffset) <= radius && abs(yOffset) <= radius) {
                 grid[side * (xOffset + radius) + yOffset + radius] = tile;
             }
         }
