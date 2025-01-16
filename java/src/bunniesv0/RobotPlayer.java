@@ -337,22 +337,9 @@ public class RobotPlayer {
                 
         	}
         }
-        
-        //if cant move in that direction
-        /*if (!rc.canMove(dir)) {
-        	//if it is a wall maneuver around
-        	if (rc.senseMapInfo(currentLocation.add(dir)).isWall()) {
-        		while (!rc.canMove(dir)){
-                    dir = directions[rng.nextInt(directions.length)];
-                }
-        	}
-        	else {
-        		dir = dir.rotateRight().rotateRight();
-        	}
-        }*/
     	
         MapLocation nextLocation = currentLocation.add(dir);
-        Direction attackDirection = nearbyEnemyPaintDirection(rc, 2);
+        Direction attackDirection = Mopper.nearbyEnemyPaintDirection(rc, 2);
         //Once movement direction is chosen, make sure that spot is NOT an enemy paint tile, if it is:
         try {
         	PaintType nextLocPaint = rc.senseMapInfo(nextLocation).getPaint();
@@ -386,14 +373,14 @@ public class RobotPlayer {
         }
         
         
-        RobotInfo[] allSeenEnemyRobots = findEnemyRobots(rc);
-        RobotInfo[] allSeenFriendlyRobots = findFriendlyRobots(rc);
+        RobotInfo[] allSeenEnemyRobots = Mopper.findEnemyRobots(rc);
+        RobotInfo[] allSeenFriendlyRobots = Mopper.findFriendlyRobots(rc);
         Direction paintTowerDir = dir; //direction of nearest paint tower; default = dir if the following if statement is not satisfied
         boolean isLowOnPaint = rc.getPaint() < 50; //the threshold 50 should be changed to an adjustable variable 
         boolean isTowerAdjacent = false; //only true when adjacent to paint tower and low on paint bc otherwise it will not update
         //low on paint or too many nearby enemies or low on health
     	if (isLowOnPaint || allSeenEnemyRobots.length > allSeenFriendlyRobots.length + 2 || rc.getHealth() < 20) { //retreat case
-    		MapLocation nearestPaintTowerLoc = findNearestStructure(rc, 2);
+    		MapLocation nearestPaintTowerLoc = Mopper.findNearestStructure(rc, 2);
     		paintTowerDir = currentLocation.directionTo(nearestPaintTowerLoc);
     		dir = paintTowerDir;
     		isTowerAdjacent = currentLocation.add(paintTowerDir).equals(nearestPaintTowerLoc); 
@@ -458,8 +445,8 @@ public class RobotPlayer {
         
         currentLocation = nextLocation; //update current location post moving
         
-    	RobotInfo[] enemyRobotsInSwingRadius = findEnemyRobots(rc, 1); //find all enemy robots within swinging distance
-    	Direction swingDir = optimalSwing(rc, enemyRobotsInSwingRadius); //find best direction to swing
+    	RobotInfo[] enemyRobotsInSwingRadius = Mopper.findEnemyRobots(rc, 1); //find all enemy robots within swinging distance
+    	Direction swingDir = Mopper.optimalSwing(rc, enemyRobotsInSwingRadius); //find best direction to swing
     	
     	//if swingDir is center that means no enemies around 
     	if (!swingDir.equals(Direction.CENTER) && rc.canMopSwing(swingDir)) {
@@ -468,192 +455,11 @@ public class RobotPlayer {
     	}
     	
         prevDir = dir; //update previous direction
-        updateEnemyRobots(rc);
-        updateMapMemory(rc);
+//        updateEnemyRobots(rc);
+        Mopper.updateMapMemory(rc);
     }
     
-    public static void updateMapMemory(RobotController rc) {
-    	MapInfo[] allMapInfo = rc.senseNearbyMapInfos();
-    	for (MapInfo tile : allMapInfo) {
-    		//these two if statements skip all other calculations bc they are unnecessary if either are true
-//    		if (tile.isPassable()) {continue;} //no important locations are passable
-    		if (tile.isWall()) {continue;} //walls are not important enough to save in memory
-    		
-    		MapLocation tileLocation = tile.getMapLocation();
-    		int correspondingNum = 1;
-			try {
-    			RobotInfo robotOnTile = rc.senseRobotAtLocation(tileLocation); 
-    			if (robotOnTile == null) { 
-//	    				System.out.println("NO ROBOT THERE: " + tileLocation.toString());
-    				continue;
-    			}
-    			
-    			UnitType robotType = robotOnTile.getType();
-//	    			System.out.println("ROBOT TYPE: " + robotType.toString());
-    			if (robotType.isTowerType()) { //real meat and potatoes of the function, differentiates all tower types
-    				
-    				//if it is a paint tower
-    				if (robotType.equals(UnitType.LEVEL_ONE_PAINT_TOWER) || 
-						robotType.equals(UnitType.LEVEL_TWO_PAINT_TOWER) ||
-						robotType.equals(UnitType.LEVEL_THREE_PAINT_TOWER)) {
-						correspondingNum = 2;
-					} //technically unnecessary since default number is two (scuffed coding)
-    				
-    				//if it is a chip tower
-    				else if (robotType.equals(UnitType.LEVEL_ONE_MONEY_TOWER) || 
-						robotType.equals(UnitType.LEVEL_TWO_MONEY_TOWER) ||
-						robotType.equals(UnitType.LEVEL_THREE_MONEY_TOWER)) {
-						correspondingNum = 3;
-					}
-    				
-    				//if it is a defense tower
-    				else if (robotType.equals(UnitType.LEVEL_ONE_DEFENSE_TOWER) || 
-						robotType.equals(UnitType.LEVEL_TWO_DEFENSE_TOWER) ||
-						robotType.equals(UnitType.LEVEL_THREE_DEFENSE_TOWER)) {
-						correspondingNum = 4;
-					}
-    				
-    				if (isEnemy(rc, robotOnTile)) {
-    					correspondingNum += 3;
-    				}
-    				
-//    				System.out.println("ADDING LOCATION: " + tileLocation.toString() + " TO TYPE: " + Integer.toString(correspondingNum));
-    				mapMemory.put(tileLocation, correspondingNum);
-        			importantLocations.get(correspondingNum).add(tileLocation);
-				} 
-    			
-    			else {
-//	    				System.out.println(tileLocation.toString() + " IS BUNNY NOT TOWER");
-    			}
-			}
-			catch (GameActionException e) { //exception "should" never happen as all locations in allMapInfo are within vision range
-				continue;
-			}
-//    		}
-    	}
-    }
     
-    public static Direction nearbyEnemyPaintDirection(RobotController rc, int radiussquared) {
-    	try {
-    		MapInfo[] nearbyTiles = rc.senseNearbyMapInfos(radiussquared);
-    		
-    		for (MapInfo tile : nearbyTiles) {
-    			
-    			if (tile.getPaint().equals(PaintType.ENEMY_PRIMARY) ||
-                        tile.getPaint().equals(PaintType.ENEMY_SECONDARY)) {
-                    return rc.getLocation().directionTo(tile.getMapLocation());
-                }
-    		
-    		}
-    		
-    		return Direction.CENTER;
-    	}
-    	catch (GameActionException e) { //shouldnt ever happen, only here because java will get mad if it's not 
-    		return Direction.CENTER;
-    	}
-    }
-    
-    public static boolean isEnemy(RobotController rc, RobotInfo otherRobot) {
-    	return rc.getTeam().opponent().equals(otherRobot.getTeam());
-    }
-    
-    //returns current location if no paint towers have been seen yet
-    public static MapLocation findNearestStructure(RobotController rc, int StructID) {
-    	MapLocation currentLocation = rc.getLocation();
-    	HashSet<MapLocation> allFriendlyPaintTowers = importantLocations.get(StructID); //all paint towers seen
-    	
-    	if(allFriendlyPaintTowers.isEmpty()) {return currentLocation;}
-    	
-    	//simple "min" algorithm, try optimizing to avoid recalculation!
-    	MapLocation nearestLocation = currentLocation;
-    	int shortestDistanceSquared = 100000;
-    	for (MapLocation towerLocation : allFriendlyPaintTowers) {
-    		int distanceSquared = currentLocation.distanceSquaredTo(towerLocation);
-    		if (distanceSquared < shortestDistanceSquared) {
-    			shortestDistanceSquared = distanceSquared;
-    			nearestLocation = towerLocation;
-    		}
-    	}
-    	
-    	return nearestLocation;
-    }
-    
-    //Finds the best direction to strike; currently swings in direction with most robots, if no robots, returns center
-    public static Direction optimalSwing(RobotController rc, RobotInfo[] enemyRobots) {
-    	int[] swingValues = getSwingValues(rc, enemyRobots);
-    	int maxInd = 0; int maxVal = 0;
-    	
-    	for (int ind = 0; ind < 4; ind++) {
-    		
-    		if (swingValues[ind] > maxVal) {
-    			maxVal = swingValues[ind];
-    			maxInd = ind;
-    		}
-    	
-    	}
-    	
-    	if (maxVal == 0) {return Direction.CENTER;}
-    	return directions[maxInd*2]; //swingValue index * 2 = directions index (e.g. South in swingValue is 2, South in directions is 4)
-    	
-    }
-    
-    //Calculates how many robots are hit in a single swing for all cardinal directions
-    public static int[] getSwingValues(RobotController rc, RobotInfo[] enemyRobots) {
-    	int[] swingValues = {0, 0, 0, 0}; //Index 0: NORTH, Index 1: EAST, Index 2: SOUTH, Index 3: WEST 
-    	
-    	//Return all 0s if there are no enemy robots around (obviously)
-    	if (enemyRobots.length > 0) {
-    	
-	    	int[] robotSpots = {0, 0, 0, 0, 0, 0, 0, 0}; //0 for no robot, 1 for robot, in the same order as static variable directions
-	    	
-	    	//Iterate through all the enemy robots
-	    	for (RobotInfo robot : enemyRobots) {
-	    		Direction enemyDir = rc.getLocation().directionTo(robot.getLocation()); //direction to the enemy from current robot
-	    		robotSpots[directionToInteger.get(enemyDir)] = 1;
-	    	}
-	    	
-	    	swingValues[0] = robotSpots[0] + robotSpots[1] + robotSpots[7]; //sum of north, northeast, and northwest values; same scheme for all other directions
-	    	swingValues[1] = robotSpots[1] + robotSpots[2] + robotSpots[3]; 
-	    	swingValues[2] = robotSpots[3] + robotSpots[4] + robotSpots[5]; 
-	    	swingValues[3] = robotSpots[5] + robotSpots[6] + robotSpots[7]; 
-
-    	}
-    	
-     	return swingValues;
-    }
-    
-	//Checks for enemy robots in a certain direction 
-    public static boolean directionEnemyCheck(RobotController rc, Direction dir, RobotInfo[] enemyRobots) {
-    	if (enemyRobots.length == 0) {return false;} //if there are no enemies then automatic false
-		for (RobotInfo robot : enemyRobots) {
-			if (rc.getLocation().directionTo(robot.getLocation()).equals(dir)) { //if the enemy's location is in the same direction as specified
-				return true;
-			}
-		}
-		return false;
-    }
-    
-    public static RobotInfo[] findEnemyRobots(RobotController rc) throws GameActionException {
-    	RobotInfo[] enemyRobots = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
-    	return enemyRobots;
-    }
-    
-    //Overloaded version for checking within a specific radius
-    public static RobotInfo[] findEnemyRobots(RobotController rc, int radius) throws GameActionException {
-    	RobotInfo[] enemyRobots = rc.senseNearbyRobots(radius, rc.getTeam().opponent());
-    	return enemyRobots;
-    }
-    
-    public static RobotInfo[] findFriendlyRobots(RobotController rc) throws GameActionException {
-    	RobotInfo[] enemyRobots = rc.senseNearbyRobots(-1, rc.getTeam());
-    	return enemyRobots;
-    }
-    
-    //Overloaded version for checking within a specific radius
-    public static RobotInfo[] findFriendlyRobots(RobotController rc, int radius) throws GameActionException {
-    	RobotInfo[] enemyRobots = rc.senseNearbyRobots(radius, rc.getTeam());
-    	return enemyRobots;
-    }
 
     /*
      * Splasher attacks immediately if it sees an empty or enemy tile.
