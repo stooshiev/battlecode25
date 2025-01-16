@@ -34,7 +34,7 @@ public class RobotPlayer {
      * we get the same sequence of numbers every time this code is run. This is very useful for debugging!
      */
     static final long RANDOM_SEED = 6147;
-    static final Random rng = new Random(RANDOM_SEED);
+    static Random rng = new Random(RANDOM_SEED);
 
     /** Array containing all the possible movement directions. */
     static final Direction[] directions = {
@@ -68,6 +68,7 @@ public class RobotPlayer {
      **/
     @SuppressWarnings("unused")
     public static void run(RobotController rc) throws GameActionException {
+        rng = new Random(RANDOM_SEED + rc.getRoundNum());
         // Hello world! Standard output is very useful for debugging.
         // Everything you say here will be directly viewable in your terminal when you run a match!
         System.out.println("I'm alive");
