@@ -522,22 +522,14 @@ public class RobotPlayer {
     static void runSplasher(RobotController rc) throws GameActionException {
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos(); // 100
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); // 100
-        /*
-        int markRuinStatus = MarkRuin.markIfFound(rc, nearbyTiles, nearbyRobots,
-                MarkRuin.INITIAL_TOWERS[rng.nextInt(MarkRuin.INITIAL_TOWERS.length - 1)]);
 
-         */
-        int markRuinStatus = 0;
-        if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT && rc.getPaint() >= UnitType.SPLASHER.attackCost) {
+        int markRuinStatus = MarkRuin.markIfFound(rc, nearbyTiles, nearbyRobots, null);
+
+        if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT &&
+                rc.getPaint() >= UnitType.SPLASHER.attackCost) {
             // if it can attack, look around and maybe attack
-            int bytecodes1 = Clock.getBytecodeNum();
-            float[] damageTotals = SplasherConvolution.computeAttackTotalsMinimal(rc, nearbyTiles, nearbyRobots);
-            int bytecodes2 = Clock.getBytecodeNum();
-            System.out.println("computeAttackTotalsMinimal() took " + (bytecodes2 - bytecodes1) + " bytecodes");
-            boolean attacked = SplasherConvolution.attackBestFlat(rc, nearbyTiles, damageTotals, threshold);
-            int bytecodes3 = Clock.getBytecodeNum();
-            System.out.println("attackBestFlat() took " + (bytecodes3 - bytecodes2) + " bytecodes");
-            if (attacked) {
+            MapLocation attackLocation = SplasherConvolution.computeAndAttack(rc, nearbyTiles, nearbyRobots, threshold);
+            if (attackLocation != null) {
                 threshold = 15.0f;
             } else if (threshold > 3.0f) {
                 threshold -= 0.1f;

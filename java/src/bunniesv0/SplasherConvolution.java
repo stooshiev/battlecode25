@@ -3,6 +3,7 @@ package bunniesv0;
 import battlecode.common.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import static java.lang.Math.*;
 
@@ -12,27 +13,13 @@ public class SplasherConvolution {
             // empty
             {{0, 0}}, // tile is impassible
             // empty, ally1, ally2,   enemy1, enemy2
-            {{1, 1}, {0, 0}, {0, -1}, {0, 0}, {0, 0}} // tile is passable
+            {{1, 1}, {0, 0}, {-.7f, -1.5f}, {0, 0}, {0, 0}} // tile is passable
     };
     static final float[][][] centerDamageArray = new float[][][] {
             // empty
             {{0, 0}}, // impassible
             // empty, ally1, ally2,   enemy1, enemy2
-            {{1, 1}, {0, 0}, {0, -1}, {2, 2}, {2, 2}} // passable
-    };
-    static final int[] attackableIndices = new int[]{
-                 2,
-             6,  7,  8,
-        10, 11, 12, 13, 14,
-            15, 16, 17,
-                21
-    };
-    static final boolean[] canAttack = new boolean[]{
-            false, false, true, false, false,
-            false, true, true, true, false,
-            true, true, true, true, true,
-            false, true, true, true, false,
-            false, false, true, false, false
+            {{1, 1}, {0, 0}, {-.7f, -1.5f}, {2.5f, 2.5f}, {4, 4}} // passable
     };
     static final boolean[][] attackCanReach = new boolean[][] {
             {false, false, false, false, true, false, false, false, false},
@@ -44,6 +31,27 @@ public class SplasherConvolution {
             {false, false, true,  true,  true, true,  true,  false, false},
             {false, false, false, true,  true, true,  false, false, false},
             {false, false, false, false, true, false, false, false, false},
+    };
+    static final boolean[] canAttack = new boolean[]{
+            false, false, true, false, false,
+            false, true, true, true, false,
+            true, true, true, true, true,
+            false, true, true, true, false,
+            false, false, true, false, false
+    };
+    static final int[] attackableIndices = new int[]{
+                 2,
+             6,  7,  8,
+        10, 11, 12, 13, 14,
+            16, 17, 18,
+                22
+    };
+    static final int[][] attackPositions = new int[][] {
+                              {-2, 0},
+                     {1, -1}, {1, 0}, {1, 1},
+            {0, -2}, {0, -1}, {0, 0}, {0, 1}, {0, 2},
+                              {1, -1}, {1, 0}, {1, 1},
+                              {2, 0}
     };
     // these generate the upcoming lookup tables
     public static int[][][] fringeTable() {
@@ -65,10 +73,20 @@ public class SplasherConvolution {
                 }
                 table[i][j] = new int[fringes.size()];
                 for (int n = 0; n < fringes.size(); n++) {
-                    table[i][j][n] = fringes.get(n);
+                    int fiveIndex = fringes.get(n);
+                    // convert to thirteen index
+                    int thirteenIndex = -1;
+                    for (int k = 0; k < 13; k++) {
+                        if (attackableIndices[k] == fiveIndex) {
+                            thirteenIndex = k;
+                            break;
+                        }
+                    }
+                    table[i][j][n] = thirteenIndex;
                 }
             }
         }
+
         return table;
     }
     public static int[][][] centerTable() {
@@ -90,45 +108,59 @@ public class SplasherConvolution {
                 }
                 table[i][j] = new int[fringes.size()];
                 for (int n = 0; n < fringes.size(); n++) {
-                    table[i][j][n] = fringes.get(n);
+                    int fiveIndex = fringes.get(n);
+                    // convert to thirteen index
+                    int thirteenIndex = -1;
+                    for (int k = 0; k < 13; k++) {
+                        if (attackableIndices[k] == fiveIndex) {
+                            thirteenIndex = k;
+                            break;
+                        }
+                    }
+                    table[i][j][n] = thirteenIndex;
                 }
             }
         }
         return table;
     }
-
+    public static void printOffsetPairTable() {
+        System.out.println("Fringe");
+        System.out.println(Arrays.deepToString(fringeTable()));
+        System.out.println("Center");
+        System.out.println(Arrays.deepToString(centerTable()));
+    }
     static int[][][] offsetPairToFringes = new int[][][]{
-            {{}, {}, {}, {}, {2}, {}, {}, {}, {}},
-            {{}, {}, {}, {6}, {7}, {8}, {}, {}, {}},
-            {{}, {}, {10, 2}, {11}, {12}, {13}, {14, 2}, {}, {}},
-            {{}, {6}, {7}, {16, 8}, {17}, {18, 6}, {7}, {8}, {}},
-            {{10}, {11}, {12}, {13}, {22, 14, 2, 10}, {11}, {12}, {13}, {14}},
-            {{}, {16}, {17}, {18, 6}, {7}, {8, 16}, {17}, {18}, {}},
-            {{}, {}, {22, 10}, {11}, {12}, {13}, {14, 22}, {}, {}},
-            {{}, {}, {}, {16}, {17}, {18}, {}, {}, {}},
-            {{}, {}, {}, {}, {22}, {}, {}, {}, {}}
+            {{}, {}, {}, {}, {0}, {}, {}, {}, {}},
+            {{}, {}, {}, {1}, {2}, {3}, {}, {}, {}},
+            {{}, {}, {4, 0}, {5}, {6}, {7}, {8, 0}, {}, {}},
+            {{}, {1}, {2}, {9, 3}, {10}, {11, 1}, {2}, {3}, {}},
+            {{4}, {5}, {6}, {7}, {12, 8, 0, 4}, {5}, {6}, {7}, {8}},
+            {{}, {9}, {10}, {11, 1}, {2}, {3, 9}, {10}, {11}, {}},
+            {{}, {}, {12, 4}, {5}, {6}, {7}, {8, 12}, {}, {}},
+            {{}, {}, {}, {9}, {10}, {11}, {}, {}, {}},
+            {{}, {}, {}, {}, {12}, {}, {}, {}, {}}
     };
     static int[][][] offsetPairToCenter = new int[][][]{
             {{}, {}, {}, {}, {}, {}, {}, {}, {}},
-            {{}, {}, {}, {2}, {2}, {2}, {}, {}, {}},
-            {{}, {}, {6}, {2, 6, 7}, {2, 6, 7, 8}, {2, 7, 8}, {8}, {}, {}},
-            {{}, {10}, {6, 10, 11}, {2, 6, 7, 10, 11, 12}, {2, 6, 7, 8, 11, 12, 13}, {2, 7, 8, 12, 13, 14}, {8, 13, 14}, {14}, {}},
-            {{}, {10}, {6, 10, 11, 16}, {6, 7, 10, 11, 12, 16, 17}, {6, 7, 8, 11, 12, 13, 16, 17, 18}, {7, 8, 12, 13, 14, 17, 18}, {8, 13, 14, 18}, {14}, {}},
-            {{}, {10}, {10, 11, 16}, {10, 11, 12, 16, 17, 22}, {11, 12, 13, 16, 17, 18, 22}, {12, 13, 14, 17, 18, 22}, {13, 14, 18}, {14}, {}},
-            {{}, {}, {16}, {16, 17, 22}, {16, 17, 18, 22}, {17, 18, 22}, {18}, {}, {}},
-            {{}, {}, {}, {22}, {22}, {22}, {}, {}, {}},
+            {{}, {}, {}, {0}, {0}, {0}, {}, {}, {}},
+            {{}, {}, {1}, {0, 1, 2}, {0, 1, 2, 3}, {0, 2, 3}, {3}, {}, {}},
+            {{}, {4}, {1, 4, 5}, {0, 1, 2, 4, 5, 6}, {0, 1, 2, 3, 5, 6, 7}, {0, 2, 3, 6, 7, 8}, {3, 7, 8}, {8}, {}},
+            {{}, {4}, {1, 4, 5, 9}, {1, 2, 4, 5, 6, 9, 10}, {1, 2, 3, 5, 6, 7, 9, 10, 11}, {2, 3, 6, 7, 8, 10, 11}, {3, 7, 8, 11}, {8}, {}},
+            {{}, {4}, {4, 5, 9}, {4, 5, 6, 9, 10, 12}, {5, 6, 7, 9, 10, 11, 12}, {6, 7, 8, 10, 11, 12}, {7, 8, 11}, {8}, {}},
+            {{}, {}, {9}, {9, 10, 12}, {9, 10, 11, 12}, {10, 11, 12}, {11}, {}, {}},
+            {{}, {}, {}, {12}, {12}, {12}, {}, {}, {}},
             {{}, {}, {}, {}, {}, {}, {}, {}, {}}
     };
     /*
      * Compute attack totals without initializing arrays larger than 5x5
      */
-    static float[] computeAttackTotalsMinimal(RobotController rc, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) {
-        int bytecodes1 = Clock.getBytecodeNum();
-        float[] attackTotals = new float[25];
-        MapLocation rcLoc = rc.getLocation();
-        if (rc.getRoundNum() > 67) {
-            int dsjkfjk = 0;
+
+    static MapLocation computeAndAttack(RobotController rc, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots, float threshold) {
+        float[] attackTotals = new float[13];
+        if (rc.getRoundNum() == 85) {
+            int djksafj = 0;
         }
+        MapLocation rcLoc = rc.getLocation();
         // loop through tiles, editing attack totals accordingly
         boolean foundTower = false;
         for (RobotInfo robot : nearbyRobots) {
@@ -138,52 +170,105 @@ public class SplasherConvolution {
                 int xIndex = robotLoc.x - rcLoc.x + 4;
                 int yIndex = robotLoc.y - rcLoc.y + 4;
                 if (attackCanReach[xIndex][yIndex]) {
-                    for (int fiveIndex : offsetPairToCenter[xIndex][yIndex]) {
-                        attackTotals[fiveIndex] += 100.0f;
+                    for (int thirteenIndex : offsetPairToCenter[xIndex][yIndex]) {
+                        attackTotals[thirteenIndex] += 100.0f;
                     }
-                    for (int fiveIndex : offsetPairToFringes[xIndex][yIndex]) {
-                        attackTotals[fiveIndex] += 100.0f;
+                    for (int thirteenIndex : offsetPairToFringes[xIndex][yIndex]) {
+                        attackTotals[thirteenIndex] += 100.0f;
                     }
                 }
                 foundTower = true;
                 break;
             }
         }
-        int bytecodes2 = Clock.getBytecodeNum();
-        if (foundTower) {
-            return attackTotals;
-        }
-        for (MapInfo tile : nearbyTiles) {
-            int bytecodes3 = Clock.getBytecodeNum();
-            MapLocation tileLoc = tile.getMapLocation();
-            int xIndex = tileLoc.x - rcLoc.x + 4;
-            int yIndex = tileLoc.y - rcLoc.y + 4;
-            // disregard tiles that are too far away to be attacked
-            if (!attackCanReach[xIndex][yIndex]) {
+        if (!foundTower) {
+            for (MapInfo tile : nearbyTiles) {
+                MapLocation tileLoc = tile.getMapLocation();
+                int xRelative = tileLoc.x - rcLoc.x;
+                int yRelative = tileLoc.y - rcLoc.y;
+                int xIndex = tileLoc.x - rcLoc.x + 4;
+                int yIndex = tileLoc.y - rcLoc.y + 4;
+                // disregard tiles that are too far away to be attacked
+                if (!attackCanReach[xIndex][yIndex]) {
+                    continue;
+                }
+                int passible = tile.isPassable() ? 1 : 0;
+                int paint = tile.getPaint().ordinal();
+                int secondaryMark = tile.getMark().isSecondary() ? 1 : 0;
+                float fringeContribution = fringeDamageArray[passible][paint][secondaryMark];
+                float centerContribution = centerDamageArray[passible][paint][secondaryMark];
+
+                // this is the meat of the operation
+                for (int thirteenIndex : offsetPairToCenter[xIndex][yIndex]) {
+                    attackTotals[thirteenIndex] += centerContribution;
+                }
+                for (int thirteenIndex : offsetPairToFringes[xIndex][yIndex]) {
+                    attackTotals[thirteenIndex] += fringeContribution;
+                }
                 continue;
             }
-            int bytecodes4 = Clock.getBytecodeNum();
-            int passible = tile.isPassable() ? 1 : 0;
-            int paint = tile.getPaint().ordinal();
-            int secondaryMark = tile.getMark().isSecondary() ? 1 : 0;
-            float fringeContribution = fringeDamageArray[passible][paint][secondaryMark];
-            float centerContribution = centerDamageArray[passible][paint][secondaryMark];
-            int bytecodes5 = Clock.getBytecodeNum();
-
-            // this is the meat of the operation
-            for (int fiveIndex : offsetPairToCenter[xIndex][yIndex]) {
-                attackTotals[fiveIndex] += centerContribution;
-            }
-            for (int fiveIndex : offsetPairToFringes[xIndex][yIndex]) {
-                attackTotals[fiveIndex] += fringeContribution;
-            }
-            int bytecodes6 = Clock.getBytecodeNum();
-            continue;
         }
-        return attackTotals;
+
+        // attemptAttack phase
+        while (true) {
+            float maxFound = threshold - 1;
+            int maxIndex = -1;
+            for (int i = 0; i < 13; i++) {
+                if (attackTotals[i] > maxFound) {
+                    maxFound = attackTotals[i];
+                    maxIndex = i;
+                }
+            }
+            if (maxFound < threshold) {
+                return null;
+            }
+            int[] attackPosition = attackPositions[maxIndex];
+            MapLocation attackLocation = new MapLocation(rcLoc.x + attackPosition[0], rcLoc.y + attackPosition[1]);
+            try {
+                rc.attack(attackLocation);
+                return attackLocation;
+            } catch (GameActionException gae) {
+                System.out.println("Exception in SplasherConvolution something");
+                gae.printStackTrace();
+                System.out.println("Attempted to attack " + attackLocation);
+                attackTotals[maxIndex] = -1000.0f;
+            }
+        }
     }
 
-    public class Tuple<X, Y> {
+    public static boolean attackBestMinimal(RobotController rc, MapInfo[] nearbyTiles, float[] attackTotals, float threshold) {
+        MapInfo[] mapInfoGrid = arrangeMapInfosFlat(rc, nearbyTiles, 2);
+        boolean[] attemptAttack = new boolean[25];
+        while (true) {
+            float maxFound = threshold - 1;
+            int maxIndex = -1;
+            for (int attackableIndex : attackableIndices) {
+                if (attemptAttack[attackableIndex]) continue;
+                if (attackTotals[attackableIndex] > maxFound) {
+                    maxFound = attackTotals[attackableIndex];
+                    maxIndex = attackableIndex;
+                }
+            }
+            if (maxFound < threshold) {
+                // no good attack spot found
+                return false;
+            }
+            if (mapInfoGrid[maxIndex] != null && rc.canAttack(mapInfoGrid[maxIndex].getMapLocation())) {
+                try {
+                    rc.attack(mapInfoGrid[maxIndex].getMapLocation());
+                    return true;
+                } catch (GameActionException gae) {
+                    System.out.println("Exception in SplasherConvolution.attackBest()");
+                    System.out.println(gae.getMessage());
+                    gae.printStackTrace();
+                }
+            }
+            // if that location couldn't be attacked, set it to false
+            attemptAttack[maxIndex] = true;
+        }
+    }
+
+    public static class Tuple<X, Y> {
         public final X v1;
         public final Y v2;
         public Tuple(X v1, Y v2) {

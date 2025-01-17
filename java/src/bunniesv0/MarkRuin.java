@@ -109,6 +109,9 @@ class MarkRuin {
             }
             return NOT_FOUND;
         }
+        if (towerType == null) {
+            towerType = MarkRuin.INITIAL_TOWERS[RobotPlayer.rng.nextInt(MarkRuin.INITIAL_TOWERS.length - 1)];
+        }
         boolean canMark = rc.canMarkTowerPattern(towerType, targetLoc);
         if (canMark) {
             // if there's a markable ruin, try to mark it
