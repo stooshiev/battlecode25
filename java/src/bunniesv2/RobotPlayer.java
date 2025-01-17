@@ -1,4 +1,4 @@
-package bunniesv0;
+package bunniesv2;
 
 import battlecode.common.*;
 
@@ -167,10 +167,7 @@ public class RobotPlayer {
         	if (Tower.getTowerType(rc) == "Paint" && rc.getPaint() >= 450) {
     			Tower.refillRobots(rc, nearbyRobots);
     		}
-        	if (turnCount < 3) { //spawns soldiers at the beginning of the game
-        		Tower.createRobot(rc, 0);
-        	}
-    		if (rc.getPaint() >= 400 && rc.getMoney() >= 700) {
+    		if (Tower.getTowerType(rc) == "Paint" && rc.getPaint() >= 400 && rc.getMoney() >= 700) {
     			Tower.createRobot(rc);
     		}
         }
@@ -521,7 +518,7 @@ public class RobotPlayer {
      * then picks a new direction to move in.
      */
     static Direction splasherDirection = null;
-    static float threshold = 20.0f;
+    static float threshold = 15.0f;
     static void runSplasher(RobotController rc) throws GameActionException {
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos(); // 100
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); // 100
@@ -533,7 +530,7 @@ public class RobotPlayer {
             // if it can attack, look around and maybe attack
             MapLocation attackLocation = SplasherConvolution.computeAndAttack(rc, nearbyTiles, nearbyRobots, threshold);
             if (attackLocation != null) {
-                threshold = 17.0f;
+                threshold = 15.0f;
             } else if (threshold > 3.0f) {
                 threshold -= 0.1f;
             }
