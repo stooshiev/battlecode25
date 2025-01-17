@@ -521,8 +521,16 @@ public class RobotPlayer {
      * then picks a new direction to move in.
      */
     static Direction splasherDirection = null;
-    static float threshold = 20.0f;
+    static float attackThreshold = 19.8f;
+    static Bug2Navigator navigator = null;
     static void runSplasher(RobotController rc) throws GameActionException {
+        if (navigator == null) {
+            navigator = new Bug2Navigator(rc, new MapLocation(49, 49), true);
+        }
+        navigator.step();
+        if (true) {
+            return;
+        }
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos(); // 100
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); // 100
 
@@ -531,11 +539,12 @@ public class RobotPlayer {
         if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT &&
                 rc.getPaint() >= UnitType.SPLASHER.attackCost) {
             // if it can attack, look around and maybe attack
-            MapLocation attackLocation = SplasherConvolution.computeAndAttack(rc, nearbyTiles, nearbyRobots, threshold);
+            MapLocation attackLocation = SplasherConvolution.computeAndAttack(rc, nearbyTiles, nearbyRobots,
+                    attackThreshold);
             if (attackLocation != null) {
-                threshold = 17.0f;
-            } else if (threshold > 3.0f) {
-                threshold -= 0.1f;
+                attackThreshold = 18.0f;
+            } else if (attackThreshold > 3.0f) {
+                attackThreshold -= 0.1f;
             }
         }
 
