@@ -167,7 +167,10 @@ public class RobotPlayer {
         	if (Tower.getTowerType(rc) == "Paint" && rc.getPaint() >= 450) {
     			Tower.refillRobots(rc, nearbyRobots);
     		}
-    		if (Tower.getTowerType(rc) == "Paint" && rc.getPaint() >= 400 && rc.getMoney() >= 700) {
+        	if (turnCount < 3) { //spawns soldiers at the beginning of the game
+        		Tower.createRobot(rc, 0);
+        	}
+    		if (rc.getPaint() >= 400 && rc.getMoney() >= 700) {
     			Tower.createRobot(rc);
     		}
         }
