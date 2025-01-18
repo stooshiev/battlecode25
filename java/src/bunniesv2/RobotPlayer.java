@@ -204,7 +204,8 @@ public class RobotPlayer {
             }
         }
 
-        rc.setIndicatorString("Going towards: " + curRuin.getMapLocation().toString());
+        if (curRuin != null)
+            rc.setIndicatorString("Going towards: " + curRuin.getMapLocation().toString());
     
         if (rc.getPaint() <= 50) {
             Soldier.retreatForPaint(rc);

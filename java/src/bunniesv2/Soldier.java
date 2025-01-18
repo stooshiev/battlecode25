@@ -38,6 +38,8 @@ public class Soldier extends RobotPlayer {
     }
 
     public static boolean checkTowerLoc(RobotController rc, MapInfo newTower) throws GameActionException {
+        
+        rc.setIndicatorString("Noting Tower!");
         if (rc.senseRobotAtLocation(newTower.getMapLocation()) == null) {
             return false;
         }
@@ -83,10 +85,10 @@ public class Soldier extends RobotPlayer {
             
             if (patternTile.getMark() != patternTile.getPaint() && patternTile.getMark() != PaintType.EMPTY){
             //if (patternTile.getMark() != patternTile.getPaint() && patternTile.getMark() != PaintType.EMPTY){
-                isMarking = true;
                 boolean useSecondaryColor = patternTile.getMark() == PaintType.ALLY_SECONDARY;
                 if (rc.canAttack(patternTile.getMapLocation()) && !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().isEnemy()) {
                     rc.attack(patternTile.getMapLocation(), useSecondaryColor);
+                    isMarking = true;
                     //attackTiles += attackTiles + ", " + patternTile.getMapLocation().toString();
                 }
             }
@@ -150,15 +152,19 @@ public class Soldier extends RobotPlayer {
     }
 
     public static MapInfo checkMarking(RobotController rc, MapInfo tile) throws GameActionException {
+        rc.setIndicatorString("Checking Marking!");
         for (MapInfo patternTile : rc.senseNearbyMapInfos(tile.getMapLocation(), 8)) {
-            if (rc.canAttack(patternTile.getMapLocation())
-            && ((rc.senseMapInfo(patternTile.getMapLocation()).getPaint() != rc.senseMapInfo(patternTile.getMapLocation()).getMark()
+            if ((rc.senseMapInfo(patternTile.getMapLocation()).getPaint() != rc.senseMapInfo(patternTile.getMapLocation()).getMark()
             && !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().isEnemy()) 
-            || rc.senseMapInfo(patternTile.getMapLocation()).getPaint() == PaintType.EMPTY)) {
-                if (!patternTile.hasRuin())
+            || rc.senseMapInfo(patternTile.getMapLocation()).getPaint() == PaintType.EMPTY) {
+                rc.setIndicatorString("Checking Marking! (1)");
+                if (!patternTile.getMapLocation().equals(tile.getMapLocation())) {
+                    rc.setIndicatorString("Checking Marking! (2)" + patternTile.getMapLocation().toString() + tile.getMapLocation().toString() + patternTile.getMapLocation().equals(tile.getMapLocation()));
                     return tile;
+                }
             }
         }
+        rc.setIndicatorString("Checking Marking! (3)");
         return null;
     }
 }
