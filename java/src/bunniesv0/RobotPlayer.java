@@ -522,15 +522,8 @@ public class RobotPlayer {
      */
     static Direction splasherDirection = null;
     static float attackThreshold = 19.8f;
-    static Bug2Navigator navigator = null;
+    static OrbitPathfinder navigator = null;
     static void runSplasher(RobotController rc) throws GameActionException {
-        if (navigator == null) {
-            navigator = new Bug2Navigator(rc, new MapLocation(49, 49), true);
-        }
-        navigator.step();
-        if (true) {
-            return;
-        }
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos(); // 100
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); // 100
 

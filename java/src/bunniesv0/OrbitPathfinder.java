@@ -1,7 +1,7 @@
 package bunniesv0;
 import battlecode.common.*;
 
-public class Bug2Navigator {
+public class OrbitPathfinder {
     // enum order CENTER, WEST, NORTHWEST, NORTH, NORTHEAST, EAST, SOUTHEAST, SOUTH, SOUTHWEST
     static final Direction[] directions = new Direction[]{
             Direction.EAST,
@@ -43,24 +43,24 @@ public class Bug2Navigator {
     private float windingNumber = 0;
     private float wallAngle = Float.NaN;
     private Direction wall = Direction.CENTER;
-    public Bug2Navigator(RobotController rc, MapLocation dest, boolean clockwise) {
+    public OrbitPathfinder(RobotController rc, MapLocation dest, boolean clockwise) {
         destX = dest.x;
         destY = dest.y;
         this.rc = rc;
         this.dest = dest;
         this.clockwise = clockwise;
     }
-    public Bug2Navigator(RobotController rc, MapLocation dest) {
+    public OrbitPathfinder(RobotController rc, MapLocation dest) {
         this(rc, dest, true);
     }
     public void step() {
         if (clockwise) {
-            stepClockwiseStack();
+            stepClockwise();
             return;
         }
-        stepCounterclockwise();
+        //stepCounterclockwise();
     }
-    private void stepClockwiseStack() {
+    private void stepClockwise() {
         if (rc.getRoundNum() >= 245) {
             int djksj = 0;
         }
@@ -129,142 +129,6 @@ public class Bug2Navigator {
         }
         System.out.println("GoTo object could not find a direction");
         wallAngle -= 8;
-    }
-    private void stepClockwise() {
-        if (rc.getRoundNum() >= 245) {
-            int dkfsj = 0;
-        }
-        if (!rc.isMovementReady()) {
-            return;
-        }
-        MapLocation rcLoc = rc.getLocation();
-        int relativeX = destX - rcLoc.x;
-        int relativeY = destY - rcLoc.y;
-        if (relativeX == 0 && relativeY == 0) {
-            return;
-        }
-        if (!angleTracking) {
-            float angle = eightAngle(relativeX, relativeY);
-            Direction best = directions[Math.round(angle)];
-            if (rc.canMove(best)) {
-                try {
-                    rc.move(best);
-                    windingNumber += turnJump(best, relativeX, relativeY);
-                    angleTracking = false;
-                    furthestAngle = Float.NaN;
-                } catch (GameActionException ignored) {
-                }
-                return;
-            } // otherwise we can't move there
-            angleTracking = true;
-            furthestAngle = windingNumber + angle;
-            wall = best;
-        }
-        // angle tracking is on if we reach here
-        Direction attempt = wall.rotateLeft();
-        for (int i = 0; i < 7; i++) { // try seven directions before giving up
-            if (rc.canMove(attempt)) {
-                try {
-                    rc.move(attempt);
-                    windingNumber += turnJump(attempt, relativeX, relativeY);
-                    float angle = eightAngle(relativeX - attempt.dx, relativeY - attempt.dy);
-                    float adjustedAngle = angle + windingNumber;
-                    if (adjustedAngle < furthestAngle) {
-                        furthestAngle = adjustedAngle;
-                        Direction bestDirection = directions[Math.round(angle)];
-                        if (rc.senseMapInfo(rcLoc.add(bestDirection)).isPassable()) {
-                            // we have never encountered obstacles in the path in front of us!
-                            angleTracking = false;
-                            furthestAngle = Float.NaN;
-                            wall = Direction.CENTER;
-                            return;
-                        }
-                    }
-                    // if it's not the best direction, we have to set wall based on our movement
-                    // we went in the direction to the left of the wall
-                    if (attempt == Direction.EAST || attempt == Direction.NORTH ||
-                            attempt == Direction.WEST || attempt == Direction.SOUTH) {
-                        // if we went in a cardinal direction, wall moved from diagonal to cardinal direction
-                        wall = wall.rotateRight();
-                    } else {
-                        // if we went in a diagonal direction, the wall moved from a cardinal direction
-                        // to cardinal direction
-                        wall = wall.rotateRight().rotateRight();
-                    }
-                } catch (GameActionException ignored) {}
-                return;
-            }
-            // if we couldn't move that way, then it is also a wall. Also try a new attempt direction
-            wall = attempt;
-            attempt = attempt.rotateLeft();
-        }
-        System.out.println("GoTo object could not find a direction");
-    }
-    private void stepCounterclockwise() {
-        if (!rc.isMovementReady()) {
-            return;
-        }
-        MapLocation rcLoc = rc.getLocation();
-        int relativeX = destX - rcLoc.x;
-        int relativeY = destY - rcLoc.y;
-        if (relativeX == 0 && relativeY == 0) {
-            return;
-        }
-        if (!angleTracking) {
-            float angle = eightAngle(relativeX, relativeY);
-            Direction best = directions[Math.round(angle)];
-            if (rc.canMove(best)) {
-                try {
-                    rc.move(best);
-                    windingNumber += turnJump(best, relativeX, relativeY);
-                    angleTracking = false;
-                    furthestAngle = Float.NaN;
-                } catch (GameActionException ignored) {}
-                return;
-            } // otherwise we can't move there
-            angleTracking = true;
-            furthestAngle = windingNumber;
-            wall = best;
-        }
-        // angle tracking is on if we reach here
-        Direction attempt = wall.rotateRight();
-        for (int i = 0; i < 7; i++) { // try seven directions before giving up
-            if (rc.canMove(attempt)) {
-                try {
-                    rc.move(attempt);
-                    windingNumber += turnJump(attempt, relativeX, relativeY);
-                    float angle = eightAngle(relativeX, relativeY);
-                    float adjustedAngle = angle + windingNumber;
-                    if (adjustedAngle > furthestAngle) {
-                        furthestAngle = adjustedAngle;
-                        Direction bestDirection = directions[Math.round(angle)];
-                        if (attempt == bestDirection) {
-                            // we have never encountered obstacles in the path in front of us!
-                            angleTracking = false;
-                            furthestAngle = Float.NaN;
-                            wall = Direction.CENTER;
-                            return;
-                        }
-                        // if it's not the best direction, we have to set wall based on our movement
-                        // we went in the direction to the left of the wall
-                        if (attempt == Direction.EAST || attempt == Direction.NORTH ||
-                                attempt == Direction.WEST || attempt == Direction.SOUTH) {
-                            // if we went in a cardinal direction, wall moved from diagonal to cardinal direction
-                            wall = wall.rotateLeft();
-                        } else {
-                            // if we went in a diagonal direction, the wall moved from a cardinal direction
-                            // to cardinal direction
-                            wall = wall.rotateLeft().rotateLeft();
-                        }
-                    }
-                } catch (GameActionException ignored) {}
-                return;
-            }
-            // if we couldn't move that way, then it is also a wall. Also try a new attempt direction
-            wall = attempt;
-            attempt = attempt.rotateRight();
-        }
-        System.out.println("GoTo object could not find a direction");
     }
     private float turnJump(Direction direction, int relativeX, int relativeY) {
         if (relativeY == -1 && direction.dy == -1 && (relativeX > 0 || (relativeX == 0 && direction.dx == -1))) {
