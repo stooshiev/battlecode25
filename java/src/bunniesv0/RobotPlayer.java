@@ -524,10 +524,14 @@ public class RobotPlayer {
     static float attackThreshold = 19.8f;
     static OrbitPathfinder navigator = null;
     static void runSplasher(RobotController rc) throws GameActionException {
+        if (rc.getRoundNum() >= 616) {
+            int jkdsfld = 0;
+        }
+
+        int markRuinStatus = MarkRuin.markIfFound(rc, null);
+
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos(); // 100
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); // 100
-
-        int markRuinStatus = MarkRuin.markIfFound(rc, nearbyTiles, nearbyRobots, null);
 
         if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT &&
                 rc.getPaint() >= UnitType.SPLASHER.attackCost) {
@@ -541,11 +545,7 @@ public class RobotPlayer {
             }
         }
 
-        if (rc.isMovementReady()) {
-            if (markRuinStatus == 2 || markRuinStatus == 3) {
-                // don't move normally if we're making progress towards marking a pattern
-                return;
-            }
+        if (rc.isMovementReady() && markRuinStatus != 6) {
             if (splasherDirection == null) {
                 splasherDirection = directions[rng.nextInt(directions.length)];
             }

@@ -48,9 +48,9 @@ public class SplasherConvolution {
     };
     static final int[][] attackPositions = new int[][] {
                               {-2, 0},
-                     {1, -1}, {1, 0}, {1, 1},
+                     {-1, -1},{-1, 0},{-1, 1},
             {0, -2}, {0, -1}, {0, 0}, {0, 1}, {0, 2},
-                              {1, -1}, {1, 0}, {1, 1},
+                     {1, -1}, {1, 0}, {1, 1},
                               {2, 0}
     };
     // these generate the upcoming lookup tables
@@ -199,11 +199,15 @@ public class SplasherConvolution {
                 float centerContribution = centerDamageArray[passible][paint][secondaryMark];
 
                 // this is the meat of the operation
-                for (int thirteenIndex : offsetPairToCenter[xIndex][yIndex]) {
-                    attackTotals[thirteenIndex] += centerContribution;
+                if (centerContribution != 0) {
+                    for (int thirteenIndex : offsetPairToCenter[xIndex][yIndex]) {
+                        attackTotals[thirteenIndex] += centerContribution;
+                    }
                 }
-                for (int thirteenIndex : offsetPairToFringes[xIndex][yIndex]) {
-                    attackTotals[thirteenIndex] += fringeContribution;
+                if (fringeContribution != 0) {
+                    for (int thirteenIndex : offsetPairToFringes[xIndex][yIndex]) {
+                        attackTotals[thirteenIndex] += fringeContribution;
+                    }
                 }
                 continue;
             }

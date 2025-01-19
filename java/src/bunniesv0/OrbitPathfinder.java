@@ -43,20 +43,25 @@ public class OrbitPathfinder {
     private float windingNumber = 0;
     private float wallAngle = Float.NaN;
     private Direction wall = Direction.CENTER;
+    private MapLocation rcLocation;
+    public boolean disturbed = false;
     public OrbitPathfinder(RobotController rc, MapLocation dest, boolean clockwise) {
         destX = dest.x;
         destY = dest.y;
         this.rc = rc;
         this.dest = dest;
         this.clockwise = clockwise;
+        rcLocation = rc.getLocation();
     }
     public OrbitPathfinder(RobotController rc, MapLocation dest) {
         this(rc, dest, true);
     }
     public void step() {
+        if (disturbed || !rc.getLocation().equals(rcLocation)) {
+            System.out.println("YOU HAVE DISTURBED THE PATHFINDER! IT WILL NEVER WORK AGAIN!");
+        }
         if (clockwise) {
             stepClockwise();
-            return;
         }
         //stepCounterclockwise();
     }
@@ -82,6 +87,7 @@ public class OrbitPathfinder {
                     windingNumber += turnJump(best, relativeX, relativeY);
                 } catch (GameActionException ignored) {
                 }
+                rcLocation = rc.getLocation();
                 return;
             } // otherwise we can't move there
             angleTracking = true;
@@ -103,6 +109,7 @@ public class OrbitPathfinder {
                         angleTracking = false;
                         wall = Direction.CENTER;
                         wallAngle = Float.NaN;
+                        rcLocation = rc.getLocation();
                         return;
                     }
                     // if it's not the best direction, we have to set wall based on our movement
@@ -119,6 +126,7 @@ public class OrbitPathfinder {
                         wallAngle -= 2;
                     }
                 } catch (GameActionException ignored) {}
+                rcLocation = rc.getLocation();
                 return;
             }
             // if we couldn't move that way, then it is also a wall. Also try a new attempt direction
@@ -129,6 +137,7 @@ public class OrbitPathfinder {
         }
         System.out.println("GoTo object could not find a direction");
         wallAngle -= 8;
+        rcLocation = rc.getLocation();
     }
     private float turnJump(Direction direction, int relativeX, int relativeY) {
         if (relativeY == -1 && direction.dy == -1 && (relativeX > 0 || (relativeX == 0 && direction.dx == -1))) {

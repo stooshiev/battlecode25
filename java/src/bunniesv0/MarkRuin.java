@@ -38,18 +38,16 @@ class MarkRuin {
     static final int FOUND_AND_CANT_MOVE = 3;
     static final int FOUND_AND_BLOCKED = 4;
     static final int NOT_ENOUGH_PAINT = 5;
+    static final int FOUND_AND_NAVIGATING = 6;
+    static final int MARKED_BY_OTHER = 7;
 
     static final UnitType[] INITIAL_TOWERS = new UnitType[]{
             UnitType.LEVEL_ONE_PAINT_TOWER,
             UnitType.LEVEL_ONE_MONEY_TOWER,
             UnitType.LEVEL_ONE_DEFENSE_TOWER
     };
-
-    /*
-     * Stores pairs of locations (loc1, loc2) where loc1.add(loc1.directionTo(loc2) is impassible and not a robot
-     */
-    static Set<Tuple<MapLocation, MapLocation>> impassablePaths = new HashSet<Tuple<MapLocation, MapLocation>>();
-
+    static MapLocation ruinLocation = null;
+    static OrbitPathfinder pathfinder = null;
     /*
      * Bunny looks around for ruins and identifies the first one it sees. If there's a ruin, it checks if it
      * has been marked. If it's been marked, it attempts to complete the tower pattern. If it hasn't been marked,
@@ -61,89 +59,58 @@ class MarkRuin {
      * FOUND_AND_CANT_MOVE if Bunny cannot move towards the ruin
      * FOUND_AND_BLOCKED if the path Bunny needs to get to the tower is blocked
      */
-    static int markIfFound(RobotController rc, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots, UnitType towerType)
+    static int markIfFound(RobotController rc, UnitType towerType)
             throws GameActionException {
+        MapLocation rcLoc = rc.getLocation();
         if (rc.getPaint() < GameConstants.MARK_PATTERN_PAINT_COST) {
             return NOT_ENOUGH_PAINT;
         }
-        // Search for a nearby ruin to complete.
-        MapInfo curRuin = null;
-        for (MapInfo tile : nearbyTiles){
-            if (tile.hasRuin()){
-                if (curRuin == null) {
-                    curRuin = tile;
-                } else {
-                    // stable way of choosing a tower
-                    MapLocation curLocation = curRuin.getMapLocation();
-                    MapLocation tileLocation = tile.getMapLocation();
-                    int c1 = curLocation.x;
-                    int c2 = tileLocation.x;
-                    if (c1 == c2) {
-                        c1 = curLocation.y;
-                        c2 = tileLocation.y;
-                    }
-                    curRuin = c1 < c2 ? curRuin : tile;
-                }
+        if (ruinLocation == null) {
+            // pick a good ruin
+            MapLocation[] ruins = rc.senseNearbyRuins(-1);
+            if (ruins.length == 0) {
+                return NOT_FOUND;
             }
-        }
-        if (curRuin == null) {
-            // if there is no nearby ruin, then do nothing
-            return NOT_FOUND;
-        }
-        // make sure there isn't already a tower there
-        for (RobotInfo robot : nearbyRobots) {
-            if (robot.getLocation().equals(curRuin.getMapLocation())) {
+            int startIndex = RobotPlayer.rng.nextInt(ruins.length);
+            int index = startIndex;
+            do {
+                MapLocation ruin = ruins[index];
+                if (rc.senseRobotAtLocation(ruin) == null && rc.senseMapInfo(
+                        ruin.add(ruin.directionTo(rcLoc))).getMark() == PaintType.EMPTY) {
+                    ruinLocation = ruin;
+                    break;
+                }
+                index = (index == ruins.length - 1) ? 0 : index + 1;
+            } while (index != startIndex);
+            if (ruinLocation == null) {
                 return NOT_FOUND;
             }
         }
-        MapLocation targetLoc = curRuin.getMapLocation();
-        MapLocation rcLoc = rc.getLocation();
-        boolean unmarked = (rc.senseMapInfo(targetLoc.add(targetLoc.directionTo(rcLoc))).getMark()
-                        == PaintType.EMPTY);
-        if (!unmarked) {
-            // if there's a ruin that's already marked, then try to complete the ruin
-            if (rc.canCompleteTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, targetLoc)){
-                rc.completeTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, targetLoc);
-                rc.setTimelineMarker("Tower built", 0, 255, 0);
-                System.out.println("Built a tower at " + targetLoc + "!");
-            }
-            return NOT_FOUND;
+        if (rc.senseRobotAtLocation(ruinLocation) != null || rc.senseMapInfo(
+                ruinLocation.add(ruinLocation.directionTo(rcLoc))).getMark() != PaintType.EMPTY) {
+            // it's been marked or a tower has been added while we were traveling there
+            pathfinder = null;
+            ruinLocation = null;
+            return MARKED_BY_OTHER;
         }
         if (towerType == null) {
             towerType = MarkRuin.INITIAL_TOWERS[RobotPlayer.rng.nextInt(MarkRuin.INITIAL_TOWERS.length - 1)];
         }
-        boolean canMark = rc.canMarkTowerPattern(towerType, targetLoc);
-        if (canMark) {
+        if (rc.canMarkTowerPattern(towerType, ruinLocation)) {
             // if there's a markable ruin, try to mark it
-            rc.markTowerPattern(towerType, targetLoc);
+            rc.markTowerPattern(towerType, ruinLocation);
+            pathfinder = null;
+            ruinLocation = null;
             return FOUND_AND_MARKED;
         }
         // If the code reaches here, the ruin is markable but cannot be marked from where rc is
         // Try to take a step towards the ruin
         // If (robot loc, ruin loc) is in the set then it's blocked
-        if (impassablePaths.contains(new Tuple<MapLocation, MapLocation>(rcLoc, targetLoc))) {
-            return FOUND_AND_BLOCKED;
+        if (pathfinder == null) {
+            pathfinder = new OrbitPathfinder(rc, ruinLocation);
         }
-        // otherwise try to go towards the path
-        Direction dir = rcLoc.directionTo(targetLoc);
-        if (rc.canMove(dir)) {
-            // if the target cannot be reached from the next tile (in the set), then this should be put in the set too
-            if (impassablePaths.contains(new Tuple<MapLocation, MapLocation>(rcLoc.add(dir), targetLoc))) {
-                impassablePaths.add(new Tuple<MapLocation, MapLocation>(rcLoc, targetLoc));
-                return FOUND_AND_BLOCKED;
-            }
-            rc.move(dir);
-            return FOUND_AND_APPROACHING;
-        }
-        // if cannot move find out why
-        MapLocation next = rcLoc.add(dir);
-        MapInfo nextTile = rc.senseMapInfo(next);
-        if (nextTile.isWall() || nextTile.hasRuin()) {
-            // if it's because it is blocked by a wall or ruin (lol), it will always be blocked
-            impassablePaths.add(new Tuple<MapLocation, MapLocation>(rcLoc, targetLoc));
-            return FOUND_AND_BLOCKED;
-        }
-        return FOUND_AND_CANT_MOVE;
+        pathfinder.step();
+        return FOUND_AND_NAVIGATING;
     }
 
     static boolean attemptCompleteTowerPattern(RobotController rc, MapLocation targetLoc)
