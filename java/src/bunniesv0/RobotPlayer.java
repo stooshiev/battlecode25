@@ -521,29 +521,31 @@ public class RobotPlayer {
      * then picks a new direction to move in.
      */
     static Direction splasherDirection = null;
-    static float threshold = 20.0f;
+    static float attackThreshold = 19.8f;
+    static OrbitPathfinder navigator = null;
     static void runSplasher(RobotController rc) throws GameActionException {
+        if (rc.getRoundNum() >= 616) {
+            int jkdsfld = 0;
+        }
+
+        int markRuinStatus = MarkRuin.markIfFound(rc, null);
+
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos(); // 100
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots(); // 100
-
-        int markRuinStatus = MarkRuin.markIfFound(rc, nearbyTiles, nearbyRobots, null);
 
         if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT &&
                 rc.getPaint() >= UnitType.SPLASHER.attackCost) {
             // if it can attack, look around and maybe attack
-            MapLocation attackLocation = SplasherConvolution.computeAndAttack(rc, nearbyTiles, nearbyRobots, threshold);
+            MapLocation attackLocation = SplasherConvolution.computeAndAttack(rc, nearbyTiles, nearbyRobots,
+                    attackThreshold);
             if (attackLocation != null) {
-                threshold = 17.0f;
-            } else if (threshold > 3.0f) {
-                threshold -= 0.1f;
+                attackThreshold = 18.0f;
+            } else if (attackThreshold > 3.0f) {
+                attackThreshold -= 0.1f;
             }
         }
 
-        if (rc.isMovementReady()) {
-            if (markRuinStatus == 2 || markRuinStatus == 3) {
-                // don't move normally if we're making progress towards marking a pattern
-                return;
-            }
+        if (rc.isMovementReady() && markRuinStatus != 6) {
             if (splasherDirection == null) {
                 splasherDirection = directions[rng.nextInt(directions.length)];
             }

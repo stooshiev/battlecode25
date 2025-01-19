@@ -201,3 +201,6 @@ java/engine_version.txt
 gradle.properties
 .gitignore
 gradlog.txt
+maps/GoToTest1.map25
+maps/GoToTest2.map25
+maps/GoToTest3.map25

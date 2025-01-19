@@ -8,3 +8,9 @@
 java/client_version.txt
 java/engine_version.txt
 java/gradle.properties
+java/README.md
+java/maps/towerTesting.map25
+java/gradlew
+java/gradle/wrapper/gradle-wrapper.properties
+java/build.gradle
+java/.idea/vcs.xml
