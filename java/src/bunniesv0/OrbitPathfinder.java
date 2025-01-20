@@ -149,4 +149,7 @@ public class OrbitPathfinder {
         }
         return 0;
     }
+    public MapLocation getDest() {
+        return dest;
+    }
 }
