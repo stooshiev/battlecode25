@@ -1,4 +1,4 @@
-apackage bunniesv2;
+package bunniesv0;
 
 import battlecode.common.*;
 
