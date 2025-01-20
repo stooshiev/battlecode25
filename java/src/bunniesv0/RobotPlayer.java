@@ -338,91 +338,14 @@ public class RobotPlayer {
     		}
     	}
     	
-    	/*else if (prevDir.equals(Direction.CENTER)) {
-        	//guaranteed to be left side
-        	if (currentLocation.x < 10) {
-        		dir = Direction.NORTHEAST;
-        	}
-        	//guaranteed to be bottom
-        	else if (currentLocation.y < 10) {
-        		dir = Direction.NORTHWEST;
-        	}
-        	
-        	else {
-        		dir = directions[rng.nextInt(directions.length)]; //pick random direction and go
-        		
-        		int counter = 0;
-                while (!rc.canMove(dir) && counter < 8){ //if that direction is invalid change it
-                    dir = dir.rotateRight();
-                    counter++;
-                }
-        		
-                if (counter == 8) {
-                	dir = Direction.CENTER;
-                }
-                
-        	}
-        }*/
-    	
         MapLocation nextLocation = currentLocation.add(dir);
-        Direction attackDirection = Mopper.nearbyEnemyPaintDirection(rc, 2);
-        //Once movement direction is chosen, make sure that spot is NOT an enemy paint tile, if it is:
-        try {
-        	PaintType nextLocPaint = rc.senseMapInfo(nextLocation).getPaint();
-	        if ((nextLocPaint.equals(PaintType.ENEMY_PRIMARY) || nextLocPaint.equals(PaintType.ENEMY_SECONDARY)) && rc.canAttack(nextLocation)){
-	            rc.attack(nextLocation);
-	            
-	        }
-	        //if there is enemy paint robot can mop; center means no nearby enemy paint that can be attacked
-	        else if (!attackDirection.equals(Direction.CENTER)) {
-	        	if (rc.isActionReady()) {
-	        		System.out.println("ATTACKING IN DIRECTION: " + attackDirection);
-	        		rc.attack(currentLocation.add(attackDirection));
-	        		dir = attackDirection;
-	        	}
-	        	else {
-	        		dir = Direction.CENTER;
-	        	}
-	        }
-	        //encourages mopper to chase after enemy paint
-	        else {
-	        	Direction nearbyEnemyPaint = Mopper.nearbyEnemyPaintDirection(rc, -1);
-	        	if (!nearbyEnemyPaint.equals(Direction.CENTER)) {
-	        		dir = nearbyEnemyPaint;
-	        	}
-	        }
-        }
-        //happens when robot attempts to sense map info on a tile out of bounds
-        catch (GameActionException e) { 
-//        	System.out.println("Location causing the problem: " + nextLocation.toString());
-        	//if there is enemy paint robot can mop; center means no nearby enemy paint that can be attacked, run this part again bc exception caused it to not run
-        	if (!attackDirection.equals(Direction.CENTER)) {
-	        	if (rc.isActionReady()) {
-	        		System.out.println("ATTACKING IN DIRECTION: " + attackDirection);
-	        		rc.attack(currentLocation.add(attackDirection));
-	        		dir = attackDirection;
-	        	}
-	        	else {
-	        		dir = Direction.CENTER;
-	        	}
-	        }
-        	//encourages mopper to chase after enemy paint
-        	else {
-	        	Direction nearbyEnemyPaint = Mopper.nearbyEnemyPaintDirection(rc, -1);
-	        	if (!nearbyEnemyPaint.equals(Direction.CENTER)) {
-	        		dir = nearbyEnemyPaint;
-	        	}
-	        }
-            // set dir to center because the previous direction was off the map
-//            dir = attackDirection;
-        }
-        
-        
 //        RobotInfo[] allSeenEnemyRobots = Mopper.findEnemyRobots(rc);
 //        RobotInfo[] allSeenFriendlyRobots = Mopper.findFriendlyRobots(rc);
         
+        
+        
         //UNCOMMENT OUT UP TO THE ELSE IF STATEMENT IF RETREATING MOPPERS IS WANTED
-        /*MapLocation nearestPaintTowerLoc = Mopper.findNearestStructure(rc, 2);
+        MapLocation nearestPaintTowerLoc = Mopper.findNearestStructure(rc, 2);
         Direction paintTowerDir = currentLocation.directionTo(nearestPaintTowerLoc); //direction of nearest paint tower; default = dir if the following if statement is not satisfied
         boolean isLowOnPaint = rc.getPaint() < 30; //the threshold 50 should be changed to an adjustable variable 
         boolean isTowerAdjacent = currentLocation.add(paintTowerDir).equals(nearestPaintTowerLoc); 
@@ -443,8 +366,70 @@ public class RobotPlayer {
         else if (isLowOnPaint || rc.getHealth() < 30) { //retreat case
     		dir = paintTowerDir;
 //    		System.out.println("I AM TRYING TO RETURN TO PAINT TOWER, DIRECTION: " + paintTowerDir.toString() + " IS TOWER ADJACENT: " + isTowerAdjacent);
-    	}*/
+    	}
     	
+        //follow a soldier if not retreating and soldier is within vision radius
+        else {
+        	MapLocation nearestFriendlySoldierLoc = Mopper.findNearestFriendlySoldier(rc);
+            if (!currentLocation.equals(nearestFriendlySoldierLoc)) {
+            	dir = currentLocation.directionTo(nearestFriendlySoldierLoc);
+            }
+            
+            else {
+            	nextLocation = currentLocation.add(dir);
+	            Direction attackDirection = Mopper.nearbyEnemyPaintDirection(rc, 2);
+	            //Once movement direction is chosen, make sure that spot is NOT an enemy paint tile, if it is:
+	            try {
+	            	PaintType nextLocPaint = rc.senseMapInfo(nextLocation).getPaint();
+	    	        if ((nextLocPaint.equals(PaintType.ENEMY_PRIMARY) || nextLocPaint.equals(PaintType.ENEMY_SECONDARY)) && rc.canAttack(nextLocation)){
+	    	            rc.attack(nextLocation);
+	    	            
+	    	        }
+	    	        //if there is enemy paint robot can mop; center means no nearby enemy paint that can be attacked
+	    	        else if (!attackDirection.equals(Direction.CENTER)) {
+	    	        	if (rc.isActionReady()) {
+	    	        		System.out.println("ATTACKING IN DIRECTION: " + attackDirection);
+	    	        		rc.attack(currentLocation.add(attackDirection));
+	    	        		dir = attackDirection;
+	    	        	}
+	    	        	else {
+	    	        		dir = Direction.CENTER;
+	    	        	}
+	    	        }
+	    	        //encourages mopper to chase after enemy paint
+	    	        else {
+	    	        	Direction nearbyEnemyPaint = Mopper.nearbyEnemyPaintDirection(rc, -1);
+	    	        	if (!nearbyEnemyPaint.equals(Direction.CENTER)) {
+	    	        		dir = nearbyEnemyPaint;
+	    	        	}
+	    	        }
+	            }
+	            //happens when robot attempts to sense map info on a tile out of bounds
+	            catch (GameActionException e) { 
+	//            	System.out.println("Location causing the problem: " + nextLocation.toString());
+	            	//if there is enemy paint robot can mop; center means no nearby enemy paint that can be attacked, run this part again bc exception caused it to not run
+	            	if (!attackDirection.equals(Direction.CENTER)) {
+	    	        	if (rc.isActionReady()) {
+	    	        		System.out.println("ATTACKING IN DIRECTION: " + attackDirection);
+	    	        		rc.attack(currentLocation.add(attackDirection));
+	    	        		dir = attackDirection;
+	    	        	}
+	    	        	else {
+	    	        		dir = Direction.CENTER;
+	    	        	}
+	    	        }
+	            	//encourages mopper to chase after enemy paint
+	            	else {
+	    	        	Direction nearbyEnemyPaint = Mopper.nearbyEnemyPaintDirection(rc, -1);
+	    	        	if (!nearbyEnemyPaint.equals(Direction.CENTER)) {
+	    	        		dir = nearbyEnemyPaint;
+	    	        	}
+	    	        }
+	                // set dir to center because the previous direction was off the map
+	//                dir = attackDirection;
+	            }
+            }
+        }
     	//Reupdate nextLocation in case direction was changed
         nextLocation = currentLocation.add(dir);
         
@@ -492,6 +477,7 @@ public class RobotPlayer {
         	
         }
         
+        prevLoc = currentLocation;
         currentLocation = nextLocation; //update current location post moving
         
         //END OF MOVEMENT FOR MOPPER
@@ -508,7 +494,6 @@ public class RobotPlayer {
     	}
     	
         prevDir = dir; //update previous direction
-        prevLoc = currentLocation;
 //        updateEnemyRobots(rc);
         Mopper.updateMapMemory(rc);
     }
