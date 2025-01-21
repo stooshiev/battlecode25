@@ -192,6 +192,8 @@ public class RobotPlayer {
         // Search for a nearby ruin to complete.
         MapInfo curRuin = null;
         MapInfo posRuin = null;
+        MapInfo enemyTowerRuin = null;
+
         for (MapInfo tile : nearbyTiles){
             if (tile.hasRuin()){
             	if (curRuin != null) {
@@ -205,17 +207,33 @@ public class RobotPlayer {
             		Soldier.checkTowerLoc(rc, tile);
                     curRuin = Soldier.checkMarking(rc, tile);
             	}
+                
+                if (rc.senseRobotAtLocation(tile.getMapLocation()) == null)
+                    rc.setIndicatorString("No enemy there");
+                if (rc.senseRobotAtLocation(tile.getMapLocation()) != null) {
+                    if (rc.senseRobotAtLocation(tile.getMapLocation()).getTeam().equals(rc.getTeam().opponent())) {
+                        enemyTowerRuin = tile;
+                        rc.setIndicatorString("" + rc.senseRobotAtLocation(tile.getMapLocation()).getTeam());//.toString());
+                    }
+                }
+                
             }
         }
 
-        if (curRuin != null)
-            rc.setIndicatorString("Going towards: " + curRuin.getMapLocation().toString());
+        //rc.setIndicatorString("Deciding action");
     
-        if (rc.getPaint() <= 50) {
+        if (enemyTowerRuin != null) {
+            rc.setIndicatorString("Attacking tower");
+            Soldier.attackEnemyTower(rc, enemyTowerRuin);
+        } else if (rc.getPaint() <= 75) {
+            rc.setIndicatorString("Getting paint");
             Soldier.retreatForPaint(rc);
         } else if (curRuin != null){
+            rc.setIndicatorString("Building tower");
             isMarking = Soldier.paintNewTower(rc, curRuin);
-        } if (!isMarking) {
+        }
+        
+        if (!isMarking) {
             // Move and attack randomly if no objective.
             Direction dir = Soldier.methodicalMovement(rc);
             MapLocation nextLoc = rc.getLocation().add(dir);
