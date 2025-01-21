@@ -438,13 +438,13 @@ public class RobotPlayer {
      * then picks a new direction to move in.
      */
     static Direction splasherDirection = null;
-    static float attackThreshold = 19.8f;
+    static float attackThreshold = 19.0f;
     static OrbitPathfinder navigator = null;
     static boolean isRetreating = false;
     static int splasherPaintRetreatThreshold = 100;
     static void runSplasher(RobotController rc) throws GameActionException {
         for (UnpackedMessage message : UnpackedMessage.receiveAndDecode(rc)) {
-            if (message.message.getRound() == rc.getRoundNum() - 1 &&
+            if (message.message.getRound() == rc.getRoundNum() &&
                     message.command == UnpackedMessage.TAKE_PAINT) {
                 if (message.turnInfo == UnpackedMessage.INVALID_ROUND_NUM) {
                     // guess at a paint amount to take
@@ -467,43 +467,46 @@ public class RobotPlayer {
                 isRetreating = false;
                 navigator = null;
             }
-            MapLocation rcLoc = rc.getLocation();
-            SplasherMemory.updateRobotMemory(rc, rc.senseNearbyRobots());
-            if (navigator == null) {
-                // remember where the closest paint tower is
-                MapLocation nearestPaintTower = SplasherMemory.getNearestFriendlyPaintTower(rc.getLocation());
-                if (nearestPaintTower != null) {
-                    navigator = new OrbitPathfinder(rc, nearestPaintTower);
-                } else {
-                    // if no tower found, continue normal movement, look for tower
-                    if (rc.isMovementReady()) {
-                        if (splasherDirection == null) {
-                            splasherDirection = directions[rng.nextInt(directions.length)];
+            else {
+                MapLocation rcLoc = rc.getLocation();
+                SplasherMemory.updateRobotMemory(rc, rc.senseNearbyRobots());
+                if (navigator == null) {
+                    // remember where the closest paint tower is
+                    MapLocation nearestPaintTower = SplasherMemory.getNearestFriendlyPaintTower(rc.getLocation());
+                    if (nearestPaintTower != null) {
+                        navigator = new OrbitPathfinder(rc, nearestPaintTower);
+                    } else {
+                        // if no tower found, continue normal movement, look for tower
+                        if (rc.isMovementReady()) {
+                            if (splasherDirection == null) {
+                                splasherDirection = directions[rng.nextInt(directions.length)];
+                            }
+                            if (rc.canMove(splasherDirection)) {
+                                rc.move(splasherDirection);
+                            } else {
+                                splasherDirection = null;
+                            }
+                            SplasherMemory.updateRobotMemory(rc, rc.senseNearbyRobots());
                         }
-                        if (rc.canMove(splasherDirection)) {
-                            rc.move(splasherDirection);
-                        } else {
-                            splasherDirection = null;
-                        }
-                        SplasherMemory.updateRobotMemory(rc, rc.senseNearbyRobots());
                     }
                 }
-            }
-            MapLocation nearestPaintTower = SplasherMemory.getNearestFriendlyPaintTower(rcLoc);
-            int closestTowerDistance = rcLoc.distanceSquaredTo(nearestPaintTower);
-            if (closestTowerDistance <= 2) {
-                try {
-                    UnpackedMessage.encodeAndSend(rc, nearestPaintTower, UnpackedMessage.REQUEST_PAINT, rc.getLocation());
-                } catch (GameActionException ignored) { }
-                // stay put and wait reply
-                return;
-            }
-            if (navigator != null) {
-                if (!nearestPaintTower.equals(navigator.getDest())) {
-                    // if the closest tower is something else
-                    navigator = new OrbitPathfinder(rc, nearestPaintTower);
+                MapLocation nearestPaintTower = SplasherMemory.getNearestFriendlyPaintTower(rcLoc);
+                int closestTowerDistance = rcLoc.distanceSquaredTo(nearestPaintTower);
+                if (closestTowerDistance <= 2) {
+                    try {
+                        UnpackedMessage.encodeAndSend(rc, nearestPaintTower, UnpackedMessage.REQUEST_PAINT, rc.getLocation());
+                    } catch (GameActionException ignored) {
+                    }
+                    // stay put and wait reply
+                    return;
                 }
-                navigator.step();
+                if (navigator != null) {
+                    if (!nearestPaintTower.equals(navigator.getDest())) {
+                        // if the closest tower is something else
+                        navigator = new OrbitPathfinder(rc, nearestPaintTower);
+                    }
+                    navigator.step();
+                }
             }
         }
 
@@ -525,7 +528,7 @@ public class RobotPlayer {
             MapLocation attackLocation = SplasherConvolution.computeAndAttack(rc, nearbyTiles, nearbyRobots,
                     attackThreshold);
             if (attackLocation != null) {
-                attackThreshold = 18.0f;
+                attackThreshold = 17.0f;
             } else if (attackThreshold > 3.0f) {
                 attackThreshold -= 0.1f;
             }
