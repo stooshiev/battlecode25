@@ -38,7 +38,6 @@ public class OrbitPathfinder {
     private final RobotController rc;
     private final boolean clockwise;
 
-    private float furthestAngle = Float.NaN; // min angle for clockwise, max angle for ccw
     private boolean angleTracking = false;
     private float windingNumber = 0;
     private float wallAngle = Float.NaN;
@@ -148,5 +147,8 @@ public class OrbitPathfinder {
             return -8;
         }
         return 0;
+    }
+    public MapLocation getDest() {
+        return dest;
     }
 }

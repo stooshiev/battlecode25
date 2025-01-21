@@ -107,7 +107,8 @@ class Tower extends RobotPlayer {
 		
 	}
 	
-	public static void actOnMessages(RobotController rc, UnpackedMessage[] unpackedMessages, MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) throws GameActionException {
+	public static void actOnMessages(RobotController rc, UnpackedMessage[] unpackedMessages,
+									 MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) throws GameActionException {
 		for (UnpackedMessage m : unpackedMessages) {
 			switch (m.command) {
 				case 0: break; // Save Chips
@@ -115,7 +116,22 @@ class Tower extends RobotPlayer {
 				case 2: break; // Send Soldiers
 				case 3: sendMoppers(rc, m.locInfo, nearbyTiles, nearbyRobots); break; // Send Moppers
 				case 4: break; // Send Splashers
+				case UnpackedMessage.REQUEST_PAINT: replyToPaintRequest(rc, m.locInfo); break;
 			}
+		}
+	}
+
+	public static void replyToPaintRequest(RobotController rcTower, MapLocation requestLoc) {
+		// TODO: Darren, decide when the tower should tell splashers to take paint and the transfer amount
+		if (rcTower.getPaint() <= 0) {
+			try {
+				UnpackedMessage.encodeAndSend(rcTower, requestLoc, UnpackedMessage.PAINT_DENIED);
+			} catch (GameActionException ignored) { }
+		} else {
+			try {
+				UnpackedMessage.encodeAndSend(rcTower, requestLoc, UnpackedMessage.TAKE_PAINT, rcTower.getLocation(),
+						Math.min(300, rcTower.getPaint()));
+			} catch (GameActionException ignored) { }
 		}
 	}
 	

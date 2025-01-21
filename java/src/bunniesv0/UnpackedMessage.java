@@ -10,6 +10,9 @@ public class UnpackedMessage extends RobotPlayer {
 	int turnInfo;
 	int senderTurn;
 	int senderID;
+	Message message;
+
+	static final int INVALID_ROUND_NUM = 2002;
 
 	// Commands from bunny to tower
 	static final int SAVE_CHIPS = 0;
@@ -17,10 +20,12 @@ public class UnpackedMessage extends RobotPlayer {
 	static final int SEND_SOLDIERS = 2;
 	static final int SEND_MOPPERS = 3;
 	static final int SEND_SPLASHERS = 4;
+	static final int REQUEST_PAINT = 5;
 
 	// Commands from tower to bunny
 	static final int GO_TO = 0;
 	static final int TAKE_PAINT = 1;
+	static final int PAINT_DENIED = 2;
 	
 	public UnpackedMessage(int c, MapLocation loc, int turn, int sTurn, int sID) {
 		command = c;
@@ -52,7 +57,7 @@ public class UnpackedMessage extends RobotPlayer {
 	
 	public static void encodeAndSend(RobotController rc, MapLocation target, int command, MapLocation locInfo)
 			throws GameActionException {
-		encodeAndSend(rc, target, command, locInfo, 2002);
+		encodeAndSend(rc, target, command, locInfo, INVALID_ROUND_NUM);
 	}
 
 	public static void encodeAndSend(RobotController rc, MapLocation target, int command, int turn)
@@ -61,7 +66,7 @@ public class UnpackedMessage extends RobotPlayer {
 	}
 
 	public static void encodeAndSend(RobotController rc, MapLocation target, int command) throws GameActionException {
-		encodeAndSend(rc, target, command, new MapLocation(60, 60), 2002);
+		encodeAndSend(rc, target, command, new MapLocation(60, 60), INVALID_ROUND_NUM);
 	}
 	
 	public static UnpackedMessage[] receiveAndDecode(RobotController rc) throws GameActionException {
@@ -89,7 +94,7 @@ public class UnpackedMessage extends RobotPlayer {
 					c, x, y, turn, unused);
             unpackedMessages[count] = new UnpackedMessage(c, new MapLocation(x, y), turn,
 					m.getRound(), m.getSenderID());
-            count += 1;
+			unpackedMessages[count].message = m;
         }
         return unpackedMessages;
 	}
