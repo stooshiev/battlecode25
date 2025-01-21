@@ -122,33 +122,49 @@ public class Soldier extends RobotPlayer {
         rc.attack(attackLoc, (attackLoc.x + attackLoc.y) % 2 == 0);
     }
 
-    public static Direction methodicalMovement(RobotController rc) throws GameActionException {
-        Direction[] bestDirection = null;
-        if (rc.getTeam() == Team.A) {
-            bestDirection = new Direction[]{
-                Direction.NORTH,
-                Direction.EAST,
-                Direction.WEST,
-                Direction.SOUTH
-            };
+    public static Direction calculateDir(RobotController rc, MapLocation goal) throws GameActionException {
+        MapLocation curRobotLoc = rc.getLocation();
+
+    }
+
+    public static boolean methodicalMovement(RobotController rc) throws GameActionException {
+        for (MapInfo nextTile : rc.senseNearbyMapInfos(22)) {
+            if (nextTile.getPaint() == Paint.EMPTY) {
+                OrbitPathfinder(rc, nextTile.getLocation());
+                return true;
+            }
         }
-        else if (rc.getTeam() == Team.B) {
-            bestDirection = new Direction[]{
-                Direction.SOUTH,
-                Direction.WEST,
-                Direction.EAST,
-                Direction.NORTH
-            };
-        }
-        for (int i = 0; i < bestDirection.length; i++) {
-            if (rc.canMove(bestDirection[i]))
-                return bestDirection[i];
-            else if (rc.canMove(bestDirection[i].rotateLeft()))
-                return bestDirection[i].rotateLeft();
-            else if (rc.canMove(bestDirection[i].rotateRight()))
-                return bestDirection[i].rotateRight();
-        }
-        return Direction.CENTER;
+        // Direction[] bestDirection = null;
+        // if (rc.getTeam() == Team.A) {
+        //     bestDirection = new Direction[]{
+        //         Direction.NORTH,
+        //         Direction.EAST,
+        //         Direction.WEST,
+        //         Direction.SOUTH
+        //     };
+        // }
+        // else if (rc.getTeam() == Team.B) {
+        //     bestDirection = new Direction[]{
+        //         Direction.SOUTH,
+        //         Direction.WEST,
+        //         Direction.EAST,
+        //         Direction.NORTH
+        //     };
+        // }
+        // for (int i = 0; i < bestDirection.length; i++) {
+        //     if (goodLocation(rc, bestDirection[i]))
+        //         return bestDirection[i];
+        //     else if (goodLocation(rc, bestDirection[i].rotateLeft()))
+        //         return bestDirection[i].rotateLeft();
+        //     else if (goodLocation(rc, bestDirection[i].rotateRight()))
+        //         return bestDirection[i].rotateRight();
+        // }
+        // return Direction.CENTER;
+        return false;
+    }
+
+    public static boolean goodLocation(RobotController rc, Direction curDir) throws GameActionException {
+        return rc.canMove(curDir) && !rc.senseMapInfo(rc.getLocation().add(curDir)).getPaint().isEnemy();
     }
 
     public static MapInfo checkMarking(RobotController rc, MapInfo tile) throws GameActionException {

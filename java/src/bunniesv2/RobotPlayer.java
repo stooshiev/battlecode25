@@ -212,12 +212,8 @@ public class RobotPlayer {
         } else if (curRuin != null){
             isMarking = Soldier.paintNewTower(rc, curRuin);
         } if (!isMarking) {
-            // Move and attack randomly if no objective.
-            Direction dir = Soldier.methodicalMovement(rc);
-            MapLocation nextLoc = rc.getLocation().add(dir);
-            if (rc.canMove(dir)){
-                rc.move(dir);
-            }
+            // Move towards an empty space
+            Boolean moved = Soldier.methodicalMovement(rc);
         }
         // Try to paint beneath us as we walk to avoid paint penalties.
         // Avoiding wasting paint by re-painting our own tiles.
