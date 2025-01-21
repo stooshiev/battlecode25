@@ -95,7 +95,6 @@ public class UnpackedMessage extends RobotPlayer {
             unpackedMessages[count] = new UnpackedMessage(c, new MapLocation(x, y), turn,
 					m.getRound(), m.getSenderID());
 			unpackedMessages[count].message = m;
-            count += 1;
         }
         return unpackedMessages;
 	}
