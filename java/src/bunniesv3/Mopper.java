@@ -13,6 +13,14 @@ public class Mopper extends RobotPlayer{
     		if (tile.isWall()) {continue;} //walls are not important enough to save in memory
     		
     		MapLocation tileLocation = tile.getMapLocation();
+    		
+    		//removes old stuff
+			if (mapMemory.keySet().contains(tileLocation)) {
+				int oldNum = mapMemory.get(tileLocation);
+				importantLocations.get(oldNum).remove(tileLocation);
+				mapMemory.remove(tileLocation);
+			}
+    		
     		int correspondingNum = 1;
 			try {
     			RobotInfo robotOnTile = rc.senseRobotAtLocation(tileLocation); 
@@ -54,13 +62,6 @@ public class Mopper extends RobotPlayer{
 	    				
 	    				if (isEnemy(rc, robotOnTile)) {
 	    					correspondingNum += 3;
-	    				}
-	    				
-	    				//removes old stuff
-	    				if (mapMemory.keySet().contains(tileLocation)) {
-	    					int oldNum = mapMemory.get(tileLocation);
-	    					importantLocations.get(oldNum).remove(tileLocation);
-	    					mapMemory.remove(tileLocation);
 	    				}
 	    				
 	//    				System.out.println("ADDING LOCATION: " + tileLocation.toString() + " TO TYPE: " + Integer.toString(correspondingNum));
@@ -380,7 +381,7 @@ public class Mopper extends RobotPlayer{
     public static void findValidMoveDir(RobotController rc) {
     	int counter = 0;
         while (!rc.canMove(dir) && counter < 8){ //if that direction is invalid change it
-            dir = dir.rotateRight();
+            dir = dir.rotateLeft();
             counter++;
         }
 		
@@ -393,20 +394,20 @@ public class Mopper extends RobotPlayer{
     	if (!attackDirection.equals(Direction.CENTER)) {
         	if (rc.isActionReady()) {
         		rc.attack(currentLocation.add(attackDirection));
-        		dir = attackDirection;
+        		//dir = attackDirection;
         	}
-        	else { //stay there until can attack so the paint doesnt disappear from attack range
+        	/*else { //stay there until can attack so the paint doesnt disappear from attack range
         		dir = Direction.CENTER;
-        	}
+        	}*/
         }
         //encourages mopper to chase after enemy paint
-        else {
+        /*else {
         	Direction nearbyEnemyPaint = Mopper.nearbyEnemyPaintDirection(rc, -1);
         	if (!nearbyEnemyPaint.equals(Direction.CENTER)) {
         		dir = nearbyEnemyPaint;
         	
     		}
-        }
+        }*/
     }
     
   //random chance (lower later into the game) to turn left or right; encourages exploration
