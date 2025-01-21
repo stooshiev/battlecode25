@@ -58,6 +58,7 @@ public class RobotPlayer {
     static Direction prevDir = Direction.CENTER; //previous direction robot moved (if robot is a bunny)
     static MapLocation prevLoc = new MapLocation(0,0);
     static Direction dir = Direction.CENTER;
+    static MapLocation targetLoc = null;
     static OrbitPathfinder navigator = null;
     
 
@@ -281,7 +282,6 @@ public class RobotPlayer {
         //if low on paint and adjacent to a paint tower
         if (isLowOnPaint && isTowerAdjacent) {
         	Mopper.transferPaintMoppers(rc, currentLocation, paintTowerDir);   	
-//    		dir = paintTowerDir.opposite(); //move away from paint tower after done transferring
     	}
         
         //low on paint
@@ -291,19 +291,29 @@ public class RobotPlayer {
     	
         //go to nearest enemy paint; IF NEVER SEEN ENEMY PAINT: follow a soldier if not retreating and soldier is within vision radius 
         else {
-        	MapLocation nearestEnemyPaint = Mopper.findNearestStructure(rc, 8);
-        	if (!nearestEnemyPaint.equals(currentLocation)) {
-        		dir = currentLocation.directionTo(nearestEnemyPaint);
+        	if (targetLoc != null) {
+        		dir = currentLocation.directionTo(targetLoc);
+        		if (currentLocation.add(dir).equals(targetLoc)) { //target location reached
+        			targetLoc = null;
+        		}
         	}
         	else {
-	        	MapLocation nearestFriendlySoldierLoc = Mopper.findNearestFriendlySoldier(rc);
-	        	//overwritten if mopper is going for enemy paint bc that takes priority
-	            if (!currentLocation.equals(nearestFriendlySoldierLoc) && !dir.equals(attackDirection)) {
-	            	dir = currentLocation.directionTo(nearestFriendlySoldierLoc);
-	            }
-        	}
+	        	MapLocation nearestEnemyPaint = Mopper.findNearestStructure(rc, 8);
+	        	System.out.println("RUNNING EXPENSIVE CODE NOW!");
+	        	if (!nearestEnemyPaint.equals(currentLocation)) {
+	        		targetLoc = nearestEnemyPaint;
+	        		dir = currentLocation.directionTo(nearestEnemyPaint);
+	        	}
+	        	else {
+		        	MapLocation nearestFriendlySoldierLoc = Mopper.findNearestFriendlySoldier(rc);
+		        	//overwritten if mopper is going for enemy paint bc that takes priority
+		            if (!currentLocation.equals(nearestFriendlySoldierLoc) && !dir.equals(attackDirection)) {
+		            	dir = currentLocation.directionTo(nearestFriendlySoldierLoc);
+		            }
+	        	}
+    		}
+    	}
             
-        }
     	//Reupdate nextLocation in case direction was changed
         nextLocation = currentLocation.add(dir);
         
@@ -330,7 +340,7 @@ public class RobotPlayer {
     	
         //Reupdate nextLocation in case direction was changed
         nextLocation = currentLocation.add(dir);
-        prevLoc = new MapLocation(currentLocation.x, currentLocation.y);
+        prevLoc = new MapLocation(currentLocation.x, currentLocation.y); //needs to be a deep copy not just pointer
         
         //Move in chosen direction
         if (rc.canMove(dir)) { //needs to be here if cooldown isnt done
@@ -491,6 +501,7 @@ public class RobotPlayer {
             }
         }
     }
+
 
     static void updateEnemyRobots(RobotController rc) throws GameActionException{
         // Sensing methods can be passed in a radius of -1 to automatically 

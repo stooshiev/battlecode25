@@ -5,90 +5,20 @@ import battlecode.common.*;
 
 public class Mopper extends RobotPlayer{
 	
-	public static void updateMapMemory(RobotController rc) {
-    	MapInfo[] allMapInfo = rc.senseNearbyMapInfos();
-    	for (MapInfo tile : allMapInfo) {
-    		
-    		//if statements skip all other calculations bc they are unnecessary if true
-    		if (tile.isWall()) {continue;} //walls are not important enough to save in memory
-    		
-    		MapLocation tileLocation = tile.getMapLocation();
-    		
-    		//removes old stuff
-			if (mapMemory.keySet().contains(tileLocation)) {
-				int oldNum = mapMemory.get(tileLocation);
-				importantLocations.get(oldNum).remove(tileLocation);
-				mapMemory.remove(tileLocation);
-			}
-    		
-    		int correspondingNum = 1;
-			try {
-    			RobotInfo robotOnTile = rc.senseRobotAtLocation(tileLocation); 
-    			if (robotOnTile == null) { 
-//	    				System.out.println("NO ROBOT THERE: " + tileLocation.toString());
-    				//if the tile has enemy paint
-    				if (tile.getPaint().equals(PaintType.ENEMY_PRIMARY) || tile.getPaint().equals(PaintType.ENEMY_SECONDARY)) {
-    					correspondingNum = 8;
-    					mapMemory.put(tileLocation, correspondingNum);
-	        			importantLocations.get(correspondingNum).add(tileLocation);
-    				}
-    			}
-    			
-    			else {
-	    			UnitType robotType = robotOnTile.getType();
-	//	    			System.out.println("ROBOT TYPE: " + robotType.toString());
-	    			if (robotType.isTowerType()) { //real meat and potatoes of the function, differentiates all tower types
-	    				
-	    				//if it is a paint tower
-	    				if (robotType.equals(UnitType.LEVEL_ONE_PAINT_TOWER) || 
-							robotType.equals(UnitType.LEVEL_TWO_PAINT_TOWER) ||
-							robotType.equals(UnitType.LEVEL_THREE_PAINT_TOWER)) {
-							correspondingNum = 2;
-						} //technically unnecessary since default number is two (scuffed coding)
-	    				
-	    				//if it is a chip tower
-	    				else if (robotType.equals(UnitType.LEVEL_ONE_MONEY_TOWER) || 
-							robotType.equals(UnitType.LEVEL_TWO_MONEY_TOWER) ||
-							robotType.equals(UnitType.LEVEL_THREE_MONEY_TOWER)) {
-							correspondingNum = 3;
-						}
-	    				
-	    				//if it is a defense tower
-	    				else if (robotType.equals(UnitType.LEVEL_ONE_DEFENSE_TOWER) || 
-							robotType.equals(UnitType.LEVEL_TWO_DEFENSE_TOWER) ||
-							robotType.equals(UnitType.LEVEL_THREE_DEFENSE_TOWER)) {
-							correspondingNum = 4;
-						}
-	    				
-	    				if (isEnemy(rc, robotOnTile)) {
-	    					correspondingNum += 3;
-	    				}
-	    				
-	//    				System.out.println("ADDING LOCATION: " + tileLocation.toString() + " TO TYPE: " + Integer.toString(correspondingNum));
-	    				mapMemory.put(tileLocation, correspondingNum);
-	        			importantLocations.get(correspondingNum).add(tileLocation);
-					} 
-	    			
-	    			else {
-	//	    				System.out.println(tileLocation.toString() + " IS BUNNY NOT TOWER");
-	    			}
-    			}
-			}
-			catch (GameActionException e) { //exception "should" never happen as all locations in allMapInfo are within vision range
-				continue;
-			}
-//    		}
-    	}
+	public static void updateMapMemory(RobotController rc) throws GameActionException{
+    	MapInfo[] allMapInfo = rc.senseNearbyMapInfos(9);
+    	updateMapMemory(rc, allMapInfo);
     }
 	
 	//overloaded to avoid double calculation of rc.senseNearbyMapInfos();
 	public static void updateMapMemory(RobotController rc, MapInfo[] allMapInfo) {
-    	for (MapInfo tile : allMapInfo) {
+		for (MapInfo tile : allMapInfo) {
     		
     		//if statements skip all other calculations bc they are unnecessary if true
     		if (tile.isWall()) {continue;} //walls are not important enough to save in memory
     		
     		MapLocation tileLocation = tile.getMapLocation();
+    		
     		int correspondingNum = 1;
 			try {
     			RobotInfo robotOnTile = rc.senseRobotAtLocation(tileLocation); 
@@ -97,8 +27,15 @@ public class Mopper extends RobotPlayer{
     				//if the tile has enemy paint
     				if (tile.getPaint().equals(PaintType.ENEMY_PRIMARY) || tile.getPaint().equals(PaintType.ENEMY_SECONDARY)) {
     					correspondingNum = 8;
-    					mapMemory.put(tileLocation, correspondingNum);
-	        			importantLocations.get(correspondingNum).add(tileLocation);
+    				}
+    				else {
+    					//removes old stuff
+    	    			if (mapMemory.keySet().contains(tileLocation)) {
+    	    				int oldNum = mapMemory.get(tileLocation);
+    	    				importantLocations.get(oldNum).remove(tileLocation);
+    	    				mapMemory.remove(tileLocation);
+    	    			}
+    					continue;
     				}
     			}
     			
@@ -131,24 +68,27 @@ public class Mopper extends RobotPlayer{
 	    				if (isEnemy(rc, robotOnTile)) {
 	    					correspondingNum += 3;
 	    				}
-	    				
-	    				//removes old stuff
-	    				if (mapMemory.keySet().contains(tileLocation)) {
-	    					int oldNum = mapMemory.get(tileLocation);
-	    					importantLocations.get(oldNum).remove(tileLocation);
-	    					mapMemory.remove(tileLocation);
-	    				}
-	    				
-	//    				System.out.println("ADDING LOCATION: " + tileLocation.toString() + " TO TYPE: " + Integer.toString(correspondingNum));
-	    				mapMemory.put(tileLocation, correspondingNum);
-	        			importantLocations.get(correspondingNum).add(tileLocation);
 					} 
 	    			
-	    			else {
-	//	    				System.out.println(tileLocation.toString() + " IS BUNNY NOT TOWER");
-	    			}
     			}
+    			
+    			//removes old stuff
+    			if (mapMemory.keySet().contains(tileLocation)) {
+    				int oldNum = mapMemory.get(tileLocation);
+    				if (oldNum != correspondingNum) {
+    					importantLocations.get(oldNum).remove(tileLocation);
+    					mapMemory.put(tileLocation, correspondingNum);
+    	    			importantLocations.get(correspondingNum).add(tileLocation);
+    				}
+    			}
+    			
+    			else {
+	    			mapMemory.put(tileLocation, correspondingNum);
+	    			importantLocations.get(correspondingNum).add(tileLocation);
+    			}
+    			
 			}
+			
 			catch (GameActionException e) { //exception "should" never happen as all locations in allMapInfo are within vision range
 				continue;
 			}
@@ -176,6 +116,21 @@ public class Mopper extends RobotPlayer{
     	}
     }
     
+    public static Direction nearbyEnemyPaintDirection(RobotController rc) {
+		MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
+		
+		for (MapInfo tile : nearbyTiles) {
+			
+			if (tile.getPaint().equals(PaintType.ENEMY_PRIMARY) ||
+                    tile.getPaint().equals(PaintType.ENEMY_SECONDARY)) {
+                return rc.getLocation().directionTo(tile.getMapLocation());
+            }
+		
+		}
+		
+		return Direction.CENTER;
+    }
+    
     public static boolean isEnemy(RobotController rc, RobotInfo otherRobot) {
     	return rc.getTeam().opponent().equals(otherRobot.getTeam());
     }
@@ -183,23 +138,29 @@ public class Mopper extends RobotPlayer{
     //returns current location if no paint towers have been seen yet 
     public static MapLocation findNearestStructure(RobotController rc, int StructID) {
     	MapLocation currentLocation = rc.getLocation();
-    	HashSet<MapLocation> allFriendlyPaintTowers = importantLocations.get(StructID); //all paint towers seen
+    	HashSet<MapLocation> allMatchingTiles = importantLocations.get(StructID); //all paint towers seen
     	
-    	if(allFriendlyPaintTowers.isEmpty()) {return currentLocation;}
+    	if(allMatchingTiles.isEmpty()) {return currentLocation;}
     	
     	//simple "min" algorithm, try optimizing to avoid recalculation!
     	MapLocation nearestLocation = currentLocation;
-    	int shortestDistanceSquared = 100000;
-    	for (MapLocation towerLocation : allFriendlyPaintTowers) {
-    		int distanceSquared = currentLocation.distanceSquaredTo(towerLocation);
+    	int shortestDistanceSquared = 1000000;
+    	for (MapLocation tileLocation : allMatchingTiles) {
+    		
+    		//actual functionality
+    		int distanceSquared = currentLocation.distanceSquaredTo(tileLocation);
     		if (distanceSquared < shortestDistanceSquared) {
     			shortestDistanceSquared = distanceSquared;
-    			nearestLocation = towerLocation;
+    			nearestLocation = tileLocation;
+    			if (shortestDistanceSquared <= 2) { //if it is literally impossible to find a closer location
+        			return nearestLocation;
+        		} 
     		}
     	}
     	
     	return nearestLocation;
     }
+    
     
     //Finds the best direction to strike; currently swings in direction with most robots, if no robots, returns center
     public static Direction optimalSwing(RobotController rc) {
