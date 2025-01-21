@@ -1,4 +1,4 @@
-package bunniesv2;
+package bunniesv3;
 
 import battlecode.common.*;
 
@@ -78,7 +78,7 @@ class Tower extends RobotPlayer {
             rc.setIndicatorString("BUILT A MOPPER");
         }
         else if (robotType == 2 && rc.canBuildRobot(UnitType.SPLASHER, nextLoc)){
-            rc.buildRobot(UnitType.SOLDIER, nextLoc);
+            rc.buildRobot(UnitType.SPLASHER, nextLoc);
             System.out.println("BUILT A SPLASHER");
             rc.setIndicatorString("BUILT A SPLASHER");
         }

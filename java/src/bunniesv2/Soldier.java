@@ -96,22 +96,6 @@ public class Soldier extends RobotPlayer {
             attackTiles[curAttack] = patternTile.getMapLocation().toString();
             curAttack += 1;
         }
-        // Complete the ruin if we can.
-        if (rc.canCompleteTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, targetLoc)){
-            rc.completeTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, targetLoc);
-            rc.setTimelineMarker("Tower built", 0, 255, 0);
-            System.out.println("Built a tower at " + targetLoc + "!");
-        }
-        if (rc.canCompleteTowerPattern(UnitType.LEVEL_ONE_MONEY_TOWER, targetLoc)){
-            rc.completeTowerPattern(UnitType.LEVEL_ONE_MONEY_TOWER, targetLoc);
-            rc.setTimelineMarker("Tower built", 0, 255, 0);
-            System.out.println("Built a tower at " + targetLoc + "!");
-        }
-        if (rc.canCompleteTowerPattern(UnitType.LEVEL_ONE_DEFENSE_TOWER, targetLoc)){
-            rc.completeTowerPattern(UnitType.LEVEL_ONE_DEFENSE_TOWER, targetLoc);
-            rc.setTimelineMarker("Tower built", 0, 255, 0);
-            System.out.println("Built a tower at " + targetLoc + "!");
-        }
         
         if (rc.canMove(moveDir))
             rc.move(moveDir);
@@ -166,7 +150,8 @@ public class Soldier extends RobotPlayer {
             }
         }
         rc.setIndicatorString("Checking Marking! (3)");
-        return null;
+        // return null;
+        return tile;
     }
 
 }
