@@ -407,60 +407,17 @@ public class RobotPlayer {
                         }
                     }
                 else if (message.command == UnpackedMessage.PAINT_DENIED) {
-                    // add this paint tower to a list that deny paint in splasher memory
-                    // TODO
-                    try {
-                        //SplasherMemory.addRejectedTower(message.message.getSenderID(), rc.getRoundNum());
-                        SplasherMemory.addRejectedTower(rc.senseRobotAtLocation(message.locInfo).ID, rc.getRoundNum());
-                    } catch (GameActionException ignored) {
-                        // shouldn't get here
-                    }
+                    SplasherMemory.addRejectedTower(message.message.getSenderID(), rc.getRoundNum());
+                    //SplasherMemory.addRejectedTower(rc.senseRobotAtLocation(message.locInfo).ID, rc.getRoundNum());
                 }
             }
         }
         if (isRetreating) {
-            if (rc.getPaint() >= splasherPaintRetreatThreshold) {
+            if (rc.getPaint() >= RobotPlayer.splasherPaintRetreatThreshold) {
                 isRetreating = false;
                 navigator = null;
             }
-            MapLocation rcLoc = rc.getLocation();
-            SplasherMemory.updateRobotMemory(rc, rc.senseNearbyRobots());
-            if (navigator == null) {
-                // remember where the closest paint tower is
-                MapLocation nearestPaintTower = SplasherMemory.getNearestFriendlyPaintTower(rc.getLocation());
-                if (nearestPaintTower != null) {
-                    navigator = new OrbitPathfinder(rc, nearestPaintTower);
-                } else {
-                    // if no tower found, continue normal movement, look for tower
-                    if (rc.isMovementReady()) {
-                        if (splasherDirection == null) {
-                            splasherDirection = directions[rng.nextInt(directions.length)];
-                        }
-                        if (rc.canMove(splasherDirection)) {
-                            rc.move(splasherDirection);
-                        } else {
-                            splasherDirection = null;
-                        }
-                        SplasherMemory.updateRobotMemory(rc, rc.senseNearbyRobots());
-                    }
-                }
-            }
-            MapLocation nearestPaintTower = SplasherMemory.getNearestFriendlyPaintTower(rcLoc);
-            int closestTowerDistance = rcLoc.distanceSquaredTo(nearestPaintTower);
-            if (closestTowerDistance <= 2) {
-                try {
-                    UnpackedMessage.encodeAndSend(rc, nearestPaintTower, UnpackedMessage.REQUEST_PAINT, rc.getLocation());
-                } catch (GameActionException ignored) { }
-                // stay put and wait reply
-                return;
-            }
-            if (navigator != null) {
-                if (!nearestPaintTower.equals(navigator.getDest())) {	
-                    // if the closest tower is something else
-                    navigator = new OrbitPathfinder(rc, nearestPaintTower);
-                }
-                navigator.step();
-            }
+            SplasherRetreat.retreat(rc);
         }
 
         if (rc.getPaint() < splasherPaintRetreatThreshold) {
