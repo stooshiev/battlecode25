@@ -51,7 +51,7 @@ public class RobotPlayer {
     static HashMap<Direction, Integer> directionToInteger = new HashMap<>();
     static HashMap<MapLocation, Integer> mapMemory = new HashMap<>(); 
     //Each integer represents something different: 1 - ruin, 2 - friendly paint tower, 3 - friendly chip tower, 4 - friendly defense tower, 
-    //5 - enemy paint tower, 6 - enemy chip tower, 7 - enemy defense tower, 8 - enemy paint (changes very often)
+    //5 - enemy paint tower, 6 - enemy chip tower, 7 - enemy defense tower, 8 - locations where enemy paint was seen
     static HashMap<Integer, HashSet<MapLocation>> importantLocations = new HashMap<>();
     //Using the same integer pattern as mapMemory, keeps track of all coordinates/tiles with corresponding important structure
     
@@ -240,6 +240,8 @@ public class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     public static void runMopper(RobotController rc) throws GameActionException{
+    	
+    	Mopper.updateMapMemory(rc);
     	MapLocation currentLocation = rc.getLocation();
     	dir = prevDir;
     	
@@ -291,27 +293,27 @@ public class RobotPlayer {
     	
         //go to nearest enemy paint; IF NEVER SEEN ENEMY PAINT: follow a soldier if not retreating and soldier is within vision radius 
         else {
-        	if (targetLoc != null) {
-        		dir = currentLocation.directionTo(targetLoc);
-        		if (currentLocation.add(dir).equals(targetLoc)) { //target location reached
-        			targetLoc = null;
-        		}
+        	MapLocation nearestEnemyPaint = Mopper.findNearestStructure(rc, 8);
+        	if (!nearestEnemyPaint.equals(currentLocation) && attackDirection.equals(Direction.CENTER)) {
+//        		targetLoc = nearestEnemyPaint;
+        		dir = currentLocation.directionTo(nearestEnemyPaint);
+        	}
+        	else if (!attackDirection.equals(Direction.CENTER)){ //if there is enemy paint in attack range there stay there
+        		dir = Direction.CENTER;
         	}
         	else {
-	        	MapLocation nearestEnemyPaint = Mopper.findNearestStructure(rc, 8);
-	        	System.out.println("RUNNING EXPENSIVE CODE NOW!");
-	        	if (!nearestEnemyPaint.equals(currentLocation)) {
-	        		targetLoc = nearestEnemyPaint;
-	        		dir = currentLocation.directionTo(nearestEnemyPaint);
-	        	}
-	        	else {
+        		Direction nearestEnemyPaintDir = Mopper.nearbyEnemyPaintDirection(rc);
+        		if (!nearestEnemyPaintDir.equals(Direction.CENTER)) { //if can see near enemy paint go there
+        			dir = nearestEnemyPaintDir;
+        		}
+        		else { 
 		        	MapLocation nearestFriendlySoldierLoc = Mopper.findNearestFriendlySoldier(rc);
 		        	//overwritten if mopper is going for enemy paint bc that takes priority
 		            if (!currentLocation.equals(nearestFriendlySoldierLoc) && !dir.equals(attackDirection)) {
 		            	dir = currentLocation.directionTo(nearestFriendlySoldierLoc);
 		            }
-	        	}
-    		}
+        		}
+        	}
     	}
             
     	//Reupdate nextLocation in case direction was changed
@@ -371,7 +373,7 @@ public class RobotPlayer {
     	
         prevDir = dir; //update previous direction
 //        updateEnemyRobots(rc);
-        Mopper.updateMapMemory(rc);
+        
     }
     
     
