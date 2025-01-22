@@ -34,6 +34,10 @@ public class UnpackedMessage extends RobotPlayer {
 		senderTurn = sTurn;
 		senderID = sID;
 	}
+	
+	public String toString() {
+		return command + ", (" + locInfo.x + ", " + locInfo.y + "), " + turnInfo + "; " + "senderTurn" + ", " + senderID;
+	}
 
 	public static void encodeAndSend(RobotController rc, MapLocation target, int command,
 									 MapLocation locInfo, int turnInfo)
@@ -95,7 +99,6 @@ public class UnpackedMessage extends RobotPlayer {
             unpackedMessages[count] = new UnpackedMessage(c, new MapLocation(x, y), turn,
 					m.getRound(), m.getSenderID());
 			unpackedMessages[count].message = m;
-            count += 1;
         }
         return unpackedMessages;
 	}

@@ -89,48 +89,47 @@ class Tower extends RobotPlayer {
 		createRobot(rc, rng.nextInt(3));
 	}
 	
-	public static void refillRobots(RobotController rc, RobotInfo[] nearbyRobots) throws GameActionException {
-		RobotInfo targetRobot = null;
-		for (RobotInfo robot : nearbyRobots) {
-			if (rc.getLocation().isAdjacentTo(robot.location) && rc.getTeam() == rc.getTeam() && (float) robot.getPaintAmount() / robot.getType().paintCapacity <= 0.7) {
-				if (targetRobot == null) {
-					targetRobot = robot;
-				}
-				else if (targetRobot.type.paintCapacity - targetRobot.paintAmount <= robot.type.paintCapacity - robot.paintAmount) {
-					targetRobot = robot;
-				}
-			}
-		}
-		if (targetRobot != null) {
-			UnpackedMessage.encodeAndSend(rc, targetRobot.location, UnpackedMessage.TAKE_PAINT, rc.getLocation());
-		}
-		
-	}
-	
 	public static void actOnMessages(RobotController rc, UnpackedMessage[] unpackedMessages,
 									 MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) throws GameActionException {
 		for (UnpackedMessage m : unpackedMessages) {
-			switch (m.command) {
-				case 0: break; // Save Chips
-				case 1: break; // Send Robots
-				case 2: break; // Send Soldiers
-				case 3: sendMoppers(rc, m.locInfo, nearbyTiles, nearbyRobots); break; // Send Moppers
-				case 4: break; // Send Splashers
-				case UnpackedMessage.REQUEST_PAINT: replyToPaintRequest(rc, m.locInfo); break;
+			System.out.println("m: " + m);
+			if (m != null) {
+				switch (m.command) {
+					case 0: break; // Save Chips
+					case 1: break; // Send Robots
+					case 2: break; // Send Soldiers
+					case 3: sendMoppers(rc, m.locInfo, nearbyTiles, nearbyRobots); break; // Send Moppers
+					case 4: break; // Send Splashers
+					case UnpackedMessage.REQUEST_PAINT: considerPaintRequest(rc, m.locInfo); break;
+				}
+			}
+		}
+		allowPaintRequest(rc);
+	}
+
+	public static RobotInfo robotInNeed = null;
+	
+	public static void considerPaintRequest(RobotController rc, MapLocation loc) throws GameActionException {
+		RobotInfo robot = rc.senseRobotAtLocation(loc);
+		if (rc.getPaint() >= 150 && (float) robot.getPaintAmount() / robot.getType().paintCapacity <= 0.7) {
+			if (robotInNeed == null) {
+				robotInNeed = robot;
+			}
+			else if (robotInNeed.type.paintCapacity - robotInNeed.paintAmount < robot.type.paintCapacity - robot.paintAmount) {
+				try {
+					UnpackedMessage.encodeAndSend(rc, robotInNeed.location, UnpackedMessage.PAINT_DENIED);
+				} catch (GameActionException ignored) { }
+				robotInNeed = robot;
 			}
 		}
 	}
-
-	public static void replyToPaintRequest(RobotController rcTower, MapLocation requestLoc) {
-		// TODO: Darren, decide when the tower should tell splashers to take paint and the transfer amount
-		if (rcTower.getPaint() <= 0) {
+	
+	public static void allowPaintRequest(RobotController rc) throws GameActionException {
+		if (robotInNeed != null) {
+			rc.setIndicatorString("Robot in Need at " + robotInNeed.location);
 			try {
-				UnpackedMessage.encodeAndSend(rcTower, requestLoc, UnpackedMessage.PAINT_DENIED);
-			} catch (GameActionException ignored) { }
-		} else {
-			try {
-				UnpackedMessage.encodeAndSend(rcTower, requestLoc, UnpackedMessage.TAKE_PAINT, rcTower.getLocation(),
-						Math.min(300, rcTower.getPaint()));
+				UnpackedMessage.encodeAndSend(rc, robotInNeed.location, UnpackedMessage.TAKE_PAINT, rc.getLocation(),
+						Math.min(robotInNeed.type.paintCapacity - robotInNeed.paintAmount, rc.getPaint() - 100));
 			} catch (GameActionException ignored) { }
 		}
 	}

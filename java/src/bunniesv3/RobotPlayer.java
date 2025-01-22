@@ -168,9 +168,6 @@ public class RobotPlayer {
         Tower.attackPattern0(rc, nearbyTiles, nearbyRobots);
     	
         if (state == "DEFAULT") { // Run all the default behavior
-        	if (Tower.getTowerType(rc) == "Paint" && rc.getPaint() >= 450) {
-    			Tower.refillRobots(rc, nearbyRobots);
-    		}
         	if (turnCount < 3) { //spawns soldiers at the beginning of the game
         		Tower.createRobot(rc, 0);
         	}
