@@ -86,7 +86,7 @@ public class Soldier extends RobotPlayer {
             if (patternTile.getMark() != patternTile.getPaint() && patternTile.getMark() != PaintType.EMPTY){
             //if (patternTile.getMark() != patternTile.getPaint() && patternTile.getMark() != PaintType.EMPTY){
                 boolean useSecondaryColor = patternTile.getMark() == PaintType.ALLY_SECONDARY;
-                if (rc.canAttack(patternTile.getMapLocation()) && !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().isEnemy()) {
+                if (rc.canAttack(patternTile.getMapLocation()) && (!rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_PRIMARY) && !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_SECONDARY))) {
                     rc.attack(patternTile.getMapLocation(), useSecondaryColor);
                     isMarking = true;
                     //attackTiles += attackTiles + ", " + patternTile.getMapLocation().toString();
@@ -155,7 +155,7 @@ public class Soldier extends RobotPlayer {
         rc.setIndicatorString("Checking Marking!");
         for (MapInfo patternTile : rc.senseNearbyMapInfos(tile.getMapLocation(), 8)) {
             if ((rc.senseMapInfo(patternTile.getMapLocation()).getPaint() != rc.senseMapInfo(patternTile.getMapLocation()).getMark()
-            && !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().isEnemy()) 
+            && (!rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_PRIMARY) && !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_SECONDARY))) 
             || rc.senseMapInfo(patternTile.getMapLocation()).getPaint() == PaintType.EMPTY) {
                 rc.setIndicatorString("Checking Marking! (1)");
                 if (!patternTile.getMapLocation().equals(tile.getMapLocation())) {

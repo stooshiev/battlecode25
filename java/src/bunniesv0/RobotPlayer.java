@@ -461,21 +461,33 @@ public class RobotPlayer {
     static boolean isRetreating = false;
     static int splasherPaintRetreatThreshold = 100;
     static void runSplasher(RobotController rc) throws GameActionException {
+        if (rc.getID() == 12569 && rc.getRoundNum() >= 186) {
+            int dksfjk = 0;
+        }
         for (UnpackedMessage message : UnpackedMessage.receiveAndDecode(rc)) {
-            if (message.message.getRound() == rc.getRoundNum() &&
-                    message.command == UnpackedMessage.TAKE_PAINT) {
-                if (message.turnInfo == UnpackedMessage.INVALID_ROUND_NUM) {
-                    // guess at a paint amount to take
-                    for (int transfer = 300; transfer > 0; transfer -= 50) {
+            if (message.message.getRound() == rc.getRoundNum()) {
+                if (message.command == UnpackedMessage.TAKE_PAINT) {
+                    if (message.turnInfo == UnpackedMessage.INVALID_ROUND_NUM) {
+                        // guess at a paint amount to take
+                        for (int transfer = 300; transfer > 0; transfer -= 50) {
+                            if (rc.canTransferPaint(message.locInfo, -transfer)) {
+                                rc.transferPaint(message.locInfo, -transfer);
+                            }
+                        }
+                    } else {
+                        // message.turnInfo is the amount that Splasher may take
+                        int transfer = Math.min(message.turnInfo, 300 - rc.getPaint());
                         if (rc.canTransferPaint(message.locInfo, -transfer)) {
                             rc.transferPaint(message.locInfo, -transfer);
                         }
                     }
-                } else {
-                    // message.turnInfo is the amount that Splasher may take
-                    int transfer = Math.min(message.turnInfo, 300 - rc.getPaint());
-                    if (rc.canTransferPaint(message.locInfo, -transfer)) {
-                        rc.transferPaint(message.locInfo, -transfer);
+                } else if (message.command == UnpackedMessage.PAINT_DENIED) {
+                    // add this paint tower to a list that deny paint in splasher memory
+                    // TODO
+                    try {
+                        SplasherMemory.addRejectedTower(rc.senseRobotAtLocation(message.locInfo).ID, rc.getRoundNum());
+                    } catch (GameActionException ignored) {
+                        // shouldn't get here
                     }
                 }
             }
@@ -530,6 +542,11 @@ public class RobotPlayer {
 
         if (rc.getPaint() < splasherPaintRetreatThreshold) {
             isRetreating = true;
+            navigator = null;
+            splasherDirection = null;
+            attackThreshold = 19;
+            MarkRuin.ruinLocation = null;
+            MarkRuin.pathfinder = null;
             return;
         }
 
