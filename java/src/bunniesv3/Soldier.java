@@ -67,8 +67,8 @@ public class Soldier extends RobotPlayer {
         rc.setIndicatorString("Collecting Paint! (2)");
     }
 
-    public static Boolean paintNewTower(RobotController rc, MapInfo curRuin) throws GameActionException {
-        Boolean isMarking = false;
+    public static boolean paintNewTower(RobotController rc, MapInfo curRuin) throws GameActionException {
+        boolean isMarking = false;
         MapLocation targetLoc = curRuin.getMapLocation();
         Direction dir = rc.getLocation().directionTo(targetLoc);
         Direction moveDir = Soldier.getShortestPathDir(rc, targetLoc);

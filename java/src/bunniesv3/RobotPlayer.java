@@ -166,9 +166,6 @@ public class RobotPlayer {
         Tower.attackPattern0(rc, nearbyTiles, nearbyRobots);
     	
         if (state == "DEFAULT") { // Run all the default behavior
-        	if (Tower.getTowerType(rc) == "Paint" && rc.getPaint() >= 450) {
-    			Tower.refillRobots(rc, nearbyRobots);
-    		}
         	if (turnCount < 3) { //spawns soldiers at the beginning of the game
         		Tower.createRobot(rc, 0);
         	}
@@ -376,6 +373,7 @@ public class RobotPlayer {
         for (UnpackedMessage message : UnpackedMessage.receiveAndDecode(rc)) {
             if (message.message.getRound() == rc.getRoundNum() - 1 &&
                     message.command == UnpackedMessage.TAKE_PAINT) {
+            	rc.setIndicatorDot(rc.getLocation(), 0, 255, 0);
                 if (message.turnInfo == UnpackedMessage.INVALID_ROUND_NUM) {
                     // guess at a paint amount to take
                     for (int transfer = 300; transfer > 0; transfer -= 50) {
