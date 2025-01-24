@@ -5,6 +5,7 @@ import battlecode.common.*;
 public class Soldier extends RobotPlayer {
     static MapLocation towerMain = null;
     static int paintAmountRequest = 100;
+    static Direction constantLocation = Direction.SOUTH;
 
     public static Direction getShortestPathDir(RobotController rc, MapLocation goal) {
         Direction straightDir = rc.getLocation().directionTo(goal);
@@ -39,17 +40,13 @@ public class Soldier extends RobotPlayer {
 
     public static boolean checkTowerLoc(RobotController rc, MapInfo newTower) throws GameActionException {
         
-        rc.setIndicatorString("Noting Tower!");
         if (rc.senseRobotAtLocation(newTower.getMapLocation()) == null) {
             return false;
         }
         if (rc.getTeam() == rc.senseRobotAtLocation(newTower.getMapLocation()).getTeam()) {
-            rc.setIndicatorString("Noting Tower! (2)");
             Soldier.setTowerLoc(newTower.getMapLocation());
-            rc.setIndicatorString("Noting Tower! (3)");
             return true;
         }
-        rc.setIndicatorString("Noting Tower! (1)");
         return false;
     }
 
@@ -58,17 +55,15 @@ public class Soldier extends RobotPlayer {
         if (closeTower == null)
             return;
         Direction moveDir = Soldier.getShortestPathDir(rc, Soldier.getTowerLoc());
-        rc.setIndicatorString("Collecting Paint! (3)");
         if (rc.canMove(moveDir))
             rc.move(moveDir);
         if (rc.canTransferPaint(closeTower, -paintAmountRequest)) {
             rc.transferPaint(closeTower, -paintAmountRequest);
         }
-        rc.setIndicatorString("Collecting Paint! (2)");
     }
 
-    public static boolean paintNewTower(RobotController rc, MapInfo curRuin) throws GameActionException {
-        boolean isMarking = false;
+    public static Boolean paintNewTower(RobotController rc, MapInfo curRuin) throws GameActionException {
+        Boolean isMarking = false;
         MapLocation targetLoc = curRuin.getMapLocation();
         Direction dir = rc.getLocation().directionTo(targetLoc);
         Direction moveDir = Soldier.getShortestPathDir(rc, targetLoc);
@@ -86,7 +81,7 @@ public class Soldier extends RobotPlayer {
             if (patternTile.getMark() != patternTile.getPaint() && patternTile.getMark() != PaintType.EMPTY){
             //if (patternTile.getMark() != patternTile.getPaint() && patternTile.getMark() != PaintType.EMPTY){
                 boolean useSecondaryColor = patternTile.getMark() == PaintType.ALLY_SECONDARY;
-                if (rc.canAttack(patternTile.getMapLocation()) && (!rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_PRIMARY) && !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_SECONDARY))) {
+                if (rc.canAttack(patternTile.getMapLocation()) && !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().isEnemy()) {
                     rc.attack(patternTile.getMapLocation(), useSecondaryColor);
                     isMarking = true;
                     //attackTiles += attackTiles + ", " + patternTile.getMapLocation().toString();
@@ -114,7 +109,6 @@ public class Soldier extends RobotPlayer {
         
         if (rc.canMove(moveDir))
             rc.move(moveDir);
-        rc.setIndicatorString("isMarking: " + isMarking);
         return isMarking;
     }
 
@@ -123,48 +117,97 @@ public class Soldier extends RobotPlayer {
     }
 
     public static Direction methodicalMovement(RobotController rc) throws GameActionException {
-        Direction[] bestDirection = null;
-        if (rc.getTeam() == Team.A) {
-            bestDirection = new Direction[]{
-                Direction.NORTH,
-                Direction.EAST,
-                Direction.WEST,
-                Direction.SOUTH
-            };
+        MapInfo emptyPaintLoc = null;
+        for (MapInfo nextLoc : rc.senseNearbyMapInfos(20)) {
+            if (nextLoc.getPaint().equals(PaintType.EMPTY) && !nextLoc.hasRuin()) {
+                if (emptyPaintLoc == null) 
+                    emptyPaintLoc = nextLoc;
+                else {
+                    if (rc.getLocation().distanceSquaredTo(nextLoc.getMapLocation()) <= rc.getLocation().distanceSquaredTo(emptyPaintLoc.getMapLocation())) {
+                        emptyPaintLoc = nextLoc;
+                    }
+                }
+            }
+
+            if (nextLoc.getPaint().equals(PaintType.EMPTY)) {
+                if (emptyPaintLoc == null) 
+                    emptyPaintLoc = nextLoc;
+                else if (!emptyPaintLoc.getPaint().equals(PaintType.EMPTY)) {
+                    if (rc.getLocation().distanceSquaredTo(nextLoc.getMapLocation()) <= rc.getLocation().distanceSquaredTo(emptyPaintLoc.getMapLocation())) {
+                        emptyPaintLoc = nextLoc;
+                    }
+                }
+            }
         }
-        else if (rc.getTeam() == Team.B) {
-            bestDirection = new Direction[]{
-                Direction.SOUTH,
-                Direction.WEST,
-                Direction.EAST,
-                Direction.NORTH
-            };
+        try {
+            rc.setIndicatorString("Trying to move to: " + emptyPaintLoc.toString());
+        } catch (Exception e) {
+            rc.setIndicatorString("Unable to find valid location :(");
         }
-        for (int i = 0; i < bestDirection.length; i++) {
-            if (rc.canMove(bestDirection[i]))
-                return bestDirection[i];
-            else if (rc.canMove(bestDirection[i].rotateLeft()))
-                return bestDirection[i].rotateLeft();
-            else if (rc.canMove(bestDirection[i].rotateRight()))
-                return bestDirection[i].rotateRight();
-        }
+        OrbitPathfinder pathing = new OrbitPathfinder(rc, emptyPaintLoc.getMapLocation());
+        pathing.step();
+        // Direction[] bestDirection = null;
+        // if (rc.getTeam() == Team.A) {
+        //     bestDirection = new Direction[]{
+        //         Direction.NORTH,
+        //         Direction.EAST,
+        //         Direction.WEST,
+        //         Direction.SOUTH
+        //     };
+        // }
+        // else if (rc.getTeam() == Team.B) {
+        //     bestDirection = new Direction[]{
+        //         Direction.SOUTH,
+        //         Direction.WEST,
+        //         Direction.EAST,
+        //         Direction.NORTH
+        //     };
+        // }
+        // for (int i = 0; i < bestDirection.length; i++) {
+        //     if (rc.canMove(bestDirection[i]))
+        //         return bestDirection[i];
+        //     else if (rc.canMove(bestDirection[i].rotateLeft()))
+        //         return bestDirection[i].rotateLeft();
+        //     else if (rc.canMove(bestDirection[i].rotateRight()))
+        //         return bestDirection[i].rotateRight();
+        // }
         return Direction.CENTER;
     }
 
     public static MapInfo checkMarking(RobotController rc, MapInfo tile) throws GameActionException {
-        rc.setIndicatorString("Checking Marking!");
         for (MapInfo patternTile : rc.senseNearbyMapInfos(tile.getMapLocation(), 8)) {
             if ((rc.senseMapInfo(patternTile.getMapLocation()).getPaint() != rc.senseMapInfo(patternTile.getMapLocation()).getMark()
-            && (!rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_PRIMARY) && !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_SECONDARY))) 
+            && !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().isEnemy()) 
             || rc.senseMapInfo(patternTile.getMapLocation()).getPaint() == PaintType.EMPTY) {
-                rc.setIndicatorString("Checking Marking! (1)");
                 if (!patternTile.getMapLocation().equals(tile.getMapLocation())) {
-                    rc.setIndicatorString("Checking Marking! (2)" + patternTile.getMapLocation().toString() + tile.getMapLocation().toString() + patternTile.getMapLocation().equals(tile.getMapLocation()));
                     return tile;
                 }
             }
         }
-        rc.setIndicatorString("Checking Marking! (3)");
         return null;
+    }
+
+    public static void attackEnemyTower(RobotController rc, MapInfo enemyTower) throws GameActionException {
+        MapLocation enemyTowerLoc = enemyTower.getMapLocation();
+        if (rc.canAttack(enemyTowerLoc)) {
+            rc.attack(enemyTowerLoc);
+            rc.setIndicatorString("Retreating: " + retreatFromEnemyTower(rc, enemyTowerLoc));
+        } else {
+            rc.move(getShortestPathDir(rc, enemyTowerLoc));
+            if (rc.canAttack(enemyTowerLoc))
+                rc.attack(enemyTowerLoc);
+        }
+    }
+
+    public static boolean retreatFromEnemyTower(RobotController rc, MapLocation enemyTowerLoc) throws GameActionException {
+        for (Direction nextDir : directions) {
+            if (rc.getLocation().add(nextDir).distanceSquaredTo(enemyTowerLoc) > 9) {
+                if (rc.canMove(nextDir)) {
+                    rc.move(nextDir);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
