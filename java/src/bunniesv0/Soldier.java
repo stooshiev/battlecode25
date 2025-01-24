@@ -5,6 +5,7 @@ import battlecode.common.*;
 public class Soldier extends RobotPlayer {
     static MapLocation towerMain = null;
     static int paintAmountRequest = 100;
+    static Direction constantLocation = Direction.SOUTH;
 
     public static Direction getShortestPathDir(RobotController rc, MapLocation goal) {
         Direction straightDir = rc.getLocation().directionTo(goal);
@@ -116,31 +117,45 @@ public class Soldier extends RobotPlayer {
     }
 
     public static Direction methodicalMovement(RobotController rc) throws GameActionException {
-        Direction[] bestDirection = null;
-        if (rc.getTeam() == Team.A) {
-            bestDirection = new Direction[]{
-                Direction.NORTH,
-                Direction.EAST,
-                Direction.WEST,
-                Direction.SOUTH
-            };
+        MapInfo emptyPaintLoc = null;
+        for (MapInfo nextLoc : rc.senseNearbyMapInfos(20)) {
+            if (nextLoc.getPaint().equals(PaintType.EMPTY)) {
+                if (emptyPaintLoc == null) 
+                    emptyPaintLoc = nextLoc;
+                else {
+                    if (rc.getLocation().distanceSquaredTo(nextLoc.getMapLocation()) <= rc.getLocation().distanceSquaredTo(emptyPaintLoc.getMapLocation())) {
+                        emptyPaintLoc = nextLoc;
+                    }
+                }
+            }
         }
-        else if (rc.getTeam() == Team.B) {
-            bestDirection = new Direction[]{
-                Direction.SOUTH,
-                Direction.WEST,
-                Direction.EAST,
-                Direction.NORTH
-            };
-        }
-        for (int i = 0; i < bestDirection.length; i++) {
-            if (rc.canMove(bestDirection[i]))
-                return bestDirection[i];
-            else if (rc.canMove(bestDirection[i].rotateLeft()))
-                return bestDirection[i].rotateLeft();
-            else if (rc.canMove(bestDirection[i].rotateRight()))
-                return bestDirection[i].rotateRight();
-        }
+        OrbitPathfinder pathing = new OrbitPathfinder(rc, emptyPaintLoc.getMapLocation());
+        pathing.step();
+        // Direction[] bestDirection = null;
+        // if (rc.getTeam() == Team.A) {
+        //     bestDirection = new Direction[]{
+        //         Direction.NORTH,
+        //         Direction.EAST,
+        //         Direction.WEST,
+        //         Direction.SOUTH
+        //     };
+        // }
+        // else if (rc.getTeam() == Team.B) {
+        //     bestDirection = new Direction[]{
+        //         Direction.SOUTH,
+        //         Direction.WEST,
+        //         Direction.EAST,
+        //         Direction.NORTH
+        //     };
+        // }
+        // for (int i = 0; i < bestDirection.length; i++) {
+        //     if (rc.canMove(bestDirection[i]))
+        //         return bestDirection[i];
+        //     else if (rc.canMove(bestDirection[i].rotateLeft()))
+        //         return bestDirection[i].rotateLeft();
+        //     else if (rc.canMove(bestDirection[i].rotateRight()))
+        //         return bestDirection[i].rotateRight();
+        // }
         return Direction.CENTER;
     }
 
