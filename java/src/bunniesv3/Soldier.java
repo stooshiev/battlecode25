@@ -82,7 +82,8 @@ public class Soldier extends RobotPlayer {
             //if (patternTile.getMark() != patternTile.getPaint() && patternTile.getMark() != PaintType.EMPTY){
                 boolean useSecondaryColor = patternTile.getMark() == PaintType.ALLY_SECONDARY;
                 if (rc.canAttack(patternTile.getMapLocation()) && 
-                		(!rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_PRIMARY) && !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_SECONDARY))) {
+        		(!rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_PRIMARY) && 
+				!rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_SECONDARY))) {
                     rc.attack(patternTile.getMapLocation(), useSecondaryColor);
                     isMarking = true;
                     //attackTiles += attackTiles + ", " + patternTile.getMapLocation().toString();
@@ -120,7 +121,7 @@ public class Soldier extends RobotPlayer {
     public static Direction methodicalMovement(RobotController rc) throws GameActionException {
         MapInfo emptyPaintLoc = null;
         for (MapInfo nextLoc : rc.senseNearbyMapInfos(20)) {
-            if (nextLoc.getPaint().equals(PaintType.EMPTY) && !nextLoc.hasRuin()) {
+            if (nextLoc.getPaint().equals(PaintType.EMPTY) && nextLoc.isPassable() && !nextLoc.hasRuin()) {
                 if (emptyPaintLoc == null) 
                     emptyPaintLoc = nextLoc;
                 else {
@@ -130,7 +131,7 @@ public class Soldier extends RobotPlayer {
                 }
             }
 
-            if (nextLoc.getPaint().equals(PaintType.EMPTY)) {
+            if (nextLoc.getPaint().equals(PaintType.EMPTY) && nextLoc.isPassable()) {
                 if (emptyPaintLoc == null) 
                     emptyPaintLoc = nextLoc;
                 else if (!emptyPaintLoc.getPaint().equals(PaintType.EMPTY)) {
@@ -142,11 +143,13 @@ public class Soldier extends RobotPlayer {
         }
         try {
             rc.setIndicatorString("Trying to move to: " + emptyPaintLoc.toString());
+            OrbitPathfinder pathing = new OrbitPathfinder(rc, emptyPaintLoc.getMapLocation());
+            pathing.step();
         } catch (Exception e) {
             rc.setIndicatorString("Unable to find valid location :(");
+            return directions[rng.nextInt(directions.length)];
         }
-        OrbitPathfinder pathing = new OrbitPathfinder(rc, emptyPaintLoc.getMapLocation());
-        pathing.step();
+        
         // Direction[] bestDirection = null;
         // if (rc.getTeam() == Team.A) {
         //     bestDirection = new Direction[]{
@@ -177,8 +180,9 @@ public class Soldier extends RobotPlayer {
 
     public static MapInfo checkMarking(RobotController rc, MapInfo tile) throws GameActionException {
         for (MapInfo patternTile : rc.senseNearbyMapInfos(tile.getMapLocation(), 8)) {
-            if ((rc.senseMapInfo(patternTile.getMapLocation()).getPaint() != rc.senseMapInfo(patternTile.getMapLocation()).getMark()
-            && (!rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_PRIMARY) && !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_SECONDARY))) 
+        	if ((rc.senseMapInfo(patternTile.getMapLocation()).getPaint() != rc.senseMapInfo(patternTile.getMapLocation()).getMark()
+            && (!rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_PRIMARY) 
+    		&& !rc.senseMapInfo(patternTile.getMapLocation()).getPaint().equals(PaintType.ENEMY_SECONDARY))) 
             || rc.senseMapInfo(patternTile.getMapLocation()).getPaint() == PaintType.EMPTY) {
                 if (!patternTile.getMapLocation().equals(tile.getMapLocation())) {
                     return tile;

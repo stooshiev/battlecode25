@@ -162,18 +162,27 @@ public class Mopper extends RobotPlayer {
 		}
 	}
 
-	public static Direction nearbyEnemyPaintDirection(RobotController rc) {
+	//ignores paint in enemy tower attack distance
+	public static MapLocation nearbyEnemyPaint(RobotController rc) {
 		MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
-
+		HashSet<MapLocation> allEnemyTowers = importantLocations.get(5);
+		allEnemyTowers.addAll(importantLocations.get(6));
+		allEnemyTowers.addAll(importantLocations.get(7));
+		MapLocation nearestEnemyTower = findNearestStructure(rc, allEnemyTowers);
+		
 		for (MapInfo tile : nearbyTiles) {
-
+			
+			//ignore the tile if its within enemy tower attack radius
+			if (tile.getMapLocation().distanceSquaredTo(nearestEnemyTower) <= 9) {continue;}
+			
 			if (tile.getPaint().equals(PaintType.ENEMY_PRIMARY) || tile.getPaint().equals(PaintType.ENEMY_SECONDARY)) {
-				return rc.getLocation().directionTo(tile.getMapLocation());
+				return tile.getMapLocation();
 			}
 
 		}
-
-		return Direction.CENTER;
+		
+		rc.setIndicatorString("Found Nothing!");
+		return rc.getLocation();
 	}
 
 	public static boolean isEnemy(RobotController rc, RobotInfo otherRobot) {
@@ -205,6 +214,81 @@ public class Mopper extends RobotPlayer {
 			}
 		}
 
+		return nearestLocation;
+	}
+	
+	// different version where it only looks through elements of the set provided
+		public static MapLocation findNearestStructure(RobotController rc, HashSet<MapLocation> allMatchingTiles) {
+			MapLocation currentLocation = rc.getLocation();
+
+			if (allMatchingTiles.isEmpty()) {
+				return currentLocation;
+			}
+
+			// simple "min" algorithm, try optimizing to avoid recalculation!
+			MapLocation nearestLocation = currentLocation;
+			int shortestDistanceSquared = 1000000;
+			for (MapLocation tileLocation : allMatchingTiles) {
+
+				// actual functionality
+				int distanceSquared = currentLocation.distanceSquaredTo(tileLocation);
+				if (distanceSquared < shortestDistanceSquared) {
+					shortestDistanceSquared = distanceSquared;
+					nearestLocation = tileLocation;
+					if (shortestDistanceSquared <= 2) { // if it is literally impossible to find a closer location
+						return nearestLocation;
+					}
+				}
+			}
+
+			return nearestLocation;
+		}
+	
+	//returns nearest structure thats NOT within enemy tower radius
+	public static MapLocation findNearestSafeStructure(RobotController rc, int StructID) {
+		MapLocation currentLocation = rc.getLocation();
+		HashSet<MapLocation> allMatchingTiles = importantLocations.get(StructID); // all paint towers seen
+		HashSet<MapLocation> allEnemyTowers = importantLocations.get(5);
+		allEnemyTowers.addAll(importantLocations.get(6));
+		allEnemyTowers.addAll(importantLocations.get(7));
+		
+		if (allMatchingTiles.isEmpty()) {
+			return currentLocation;
+		}
+
+		// simple "min" algorithm, try optimizing to avoid recalculation!
+		MapLocation nearestLocation = currentLocation;
+		int shortestDistanceSquared = 1000000;
+		boolean skip = false;
+		for (MapLocation tileLocation : allMatchingTiles) {
+
+			// actual functionality
+			int distanceSquared = currentLocation.distanceSquaredTo(tileLocation);
+			if (distanceSquared < shortestDistanceSquared) {
+				
+				//checks if tile is within enemy tower attack radius
+				for (MapLocation towerLoc : allEnemyTowers) {
+					//unsafe location
+					if (tileLocation.distanceSquaredTo(towerLoc) <= 9) {
+						skip = true;
+						break;
+					}
+				}
+				
+				if (skip) {
+					skip = false;
+					continue;
+				}
+				
+				shortestDistanceSquared = distanceSquared;
+				nearestLocation = tileLocation;
+				if (shortestDistanceSquared <= 2) { // if it is literally impossible to find a closer location
+					return nearestLocation;
+				}
+			}
+		}
+		
+		rc.setIndicatorString("NOTHING FOUND");
 		return nearestLocation;
 	}
 

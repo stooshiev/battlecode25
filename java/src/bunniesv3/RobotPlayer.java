@@ -21,7 +21,7 @@ public class RobotPlayer {
     static int creationTurn = 0;
     
     static String state = "DEFAULT";
-
+    
     static Team team = Team.NEUTRAL;
 
     /**
@@ -234,6 +234,14 @@ public class RobotPlayer {
         if (!isMarking) {
             // Move and attack randomly if no objective.
             Direction dir = Soldier.methodicalMovement(rc);
+            if (!dir.equals(Direction.CENTER)) {
+            	if (prevLoc.equals(rc.getLocation())) {
+            		dir = directions[rng.nextInt(directions.length)];
+            	}
+            	else {
+            		dir = prevDir;
+            	}
+            }
             MapLocation nextLoc = rc.getLocation().add(dir);
             if (rc.canMove(dir)){
                 rc.move(dir);
@@ -245,8 +253,10 @@ public class RobotPlayer {
         if (!currentTile.getPaint().isAlly() && rc.canAttack(rc.getLocation())) {
             Soldier.attackCheckered(rc, rc.getLocation());
         }
+        
+        prevLoc = rc.getLocation();
+        prevDir = dir;
     }
-
 
     /**
      * Run a single turn for a Mopper.
@@ -293,30 +303,62 @@ public class RobotPlayer {
         Direction paintTowerDir = currentLocation.directionTo(nearestPaintTowerLoc); //direction of nearest paint tower; default = dir if the following if statement is not satisfied
         boolean isLowOnPaint = rc.getPaint() < 30; //the threshold 50 should be changed to an adjustable variable 
         boolean isTowerAdjacent = currentLocation.add(paintTowerDir).equals(nearestPaintTowerLoc); 
+        boolean useNavigator = false;
         
         //if low on paint and adjacent to a paint tower
         if (isLowOnPaint && isTowerAdjacent) {
-        	Mopper.transferPaintMoppers(rc, currentLocation, paintTowerDir);   	
+        	Mopper.transferPaintMoppers(rc, currentLocation, paintTowerDir); 
     	}
         
         //low on paint
-        else if (isLowOnPaint) { //retreat case
-    		dir = paintTowerDir;
+        else if (isLowOnPaint && !useNavigator) { //retreat case
+    		if (!rc.senseMapInfo(currentLocation.add(paintTowerDir)).isPassable()) {
+    			navigator = new OrbitPathfinder(rc, nearestPaintTowerLoc);
+    			navigator.step();
+    			useNavigator = true;
+    		}
+    		else {
+    			dir = paintTowerDir;
+    		}
     	}
+        
+        else if (isLowOnPaint && useNavigator) {
+        	navigator.step();
+        	useNavigator = !rc.senseMapInfo(currentLocation.add(paintTowerDir)).isPassable();
+        }
+        
     	
-        //go to nearest enemy paint; IF NEVER SEEN ENEMY PAINT: follow a soldier if not retreating and soldier is within vision radius 
+        //go to nearest enemy paint THATS NOT WITHIN ENEMY TOWER ATTACK RADIUS; 
+        //IF NEVER SEEN ENEMY PAINT: follow a soldier if not retreating and soldier is within vision radius 
         else {
-        	MapLocation nearestEnemyPaint = Mopper.findNearestStructure(rc, 8);
-        	if (!nearestEnemyPaint.equals(currentLocation) && attackDirection.equals(Direction.CENTER)) {
+        	MapLocation nearestEnemyPaint = Mopper.findNearestSafeStructure(rc, 8);
+        	if (useNavigator) {
+        		navigator.step();
+        		dir = currentLocation.directionTo(nearestEnemyPaint);
+        		useNavigator = !rc.senseMapInfo(currentLocation.add(dir)).isPassable();
+        	}
+        	else if (!nearestEnemyPaint.equals(currentLocation) && attackDirection.equals(Direction.CENTER)) {
 //        		targetLoc = nearestEnemyPaint;
         		dir = currentLocation.directionTo(nearestEnemyPaint);
+        		useNavigator = !rc.senseMapInfo(currentLocation.add(dir)).isPassable();
+        		if (useNavigator) {
+        			navigator = new OrbitPathfinder(rc, nearestEnemyPaint);
+        			navigator.step();
+        		}
         	}
         	else if (!attackDirection.equals(Direction.CENTER)){ //if there is enemy paint in attack range there stay there
         		dir = Direction.CENTER;
+        		useNavigator = false;
         	}
         	else {
-        		Direction nearestEnemyPaintDir = Mopper.nearbyEnemyPaintDirection(rc);
+        		nearestEnemyPaint = Mopper.nearbyEnemyPaint(rc);
+        		Direction nearestEnemyPaintDir = currentLocation.directionTo(nearestEnemyPaint);
         		if (!nearestEnemyPaintDir.equals(Direction.CENTER)) { //if can see near enemy paint go there
+        			useNavigator = !rc.senseMapInfo(currentLocation.add(nearestEnemyPaintDir)).isPassable();
+        			if (useNavigator) {
+        				navigator = new OrbitPathfinder(rc, nearestEnemyPaint);
+            			navigator.step();
+        			}
         			dir = nearestEnemyPaintDir;
         		}
         		else { 
@@ -357,8 +399,9 @@ public class RobotPlayer {
         nextLocation = currentLocation.add(dir);
         prevLoc = new MapLocation(currentLocation.x, currentLocation.y); //needs to be a deep copy not just pointer
         
+//        rc.setIndicatorString("Direction of movement: " + dir.toString() + " Is using orbit pathfinder: " + useNavigator);
         //Move in chosen direction
-        if (rc.canMove(dir)) { //needs to be here if cooldown isnt done
+        if (rc.canMove(dir) && !useNavigator) { //needs to be here if cooldown isnt done
         	try {	
         		rc.move(dir);
         	}
@@ -400,7 +443,6 @@ public class RobotPlayer {
     static float attackThreshold = 19.8f;
     static boolean isRetreating = false;
     static int splasherPaintRetreatThreshold = 100;
-    static int prevHp = -1;
     static void runSplasher(RobotController rc) throws GameActionException {
         if (rc.getRoundNum() >= 103 && rc.getID() == 12569) {
             int djaf = 0;
