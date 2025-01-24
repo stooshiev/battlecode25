@@ -1,6 +1,8 @@
 package bunniesv3;
 import battlecode.common.*;
 
+import java.util.HashSet;
+
 public class OrbitPathfinder {
     // enum order CENTER, WEST, NORTHWEST, NORTH, NORTHEAST, EAST, SOUTHEAST, SOUTH, SOUTHWEST
     static final Direction[] directions = new Direction[]{
@@ -15,6 +17,15 @@ public class OrbitPathfinder {
             Direction.EAST
     };
     static final float[] ordToAngle = new float[]{2, 1, 0, 7, 6, 5, 4, 3, Float.NaN};
+    static final int[][] radius3 = new int[][] {
+                                         {-3, 0},
+                     {-2, -2}, {-2, -1}, {-2, 0}, {-2, 1}, {-2, 2},
+                     {-1, -2},                             {-1, 2},
+            {0, -3}, {0, -2},                              {0, 2}, {0, 3},
+                       {1, -2},                            {1, 2},
+                       {2, -2}, {2, -1}, {2, 0}, {2, 1},   {2, 2},
+                                         {3, 0}
+    };
     // an angle-like metric where going counterclockwise increases the metric and one round adds 8
     static float eightAngle(float x, float y) {
         if (x == 0 && y == 0) {
@@ -37,6 +48,8 @@ public class OrbitPathfinder {
     private final MapLocation dest;
     private final RobotController rc;
     private final boolean clockwise;
+    public static HashSet<MapLocation> avoidWithinRadius3 = null;
+    private static HashSet<MapLocation> avoidDueToRadius3 = new HashSet<>();
 
     private boolean angleTracking = false;
     private float windingNumber = 0;
@@ -56,18 +69,26 @@ public class OrbitPathfinder {
         this(rc, dest, true);
     }
     public void step() {
+        // recalculate bad squares if avoidWithinRadius3
+        if (avoidWithinRadius3 != null) {
+            for (MapLocation tower : avoidWithinRadius3) {
+                for (int[] offset : radius3) {
+                    avoidDueToRadius3.add(new MapLocation(tower.x + offset[0], tower.y + offset[1]));
+                }
+            }
+        } else if (!avoidDueToRadius3.isEmpty()) {
+            avoidDueToRadius3 = new HashSet<>();
+        }
+
         if (disturbed || !rc.getLocation().equals(rcLocation)) {
             System.out.println("YOU HAVE DISTURBED THE PATHFINDER! IT WILL NEVER WORK AGAIN!");
         }
         if (clockwise) {
             stepClockwise();
         }
-        //stepCounterclockwise();
+        stepCounterclockwise();
     }
     private void stepClockwise() {
-        if (rc.getRoundNum() >= 245) {
-            int djksj = 0;
-        }
         if (!rc.isMovementReady()) {
             return;
         }
@@ -80,7 +101,7 @@ public class OrbitPathfinder {
         if (!angleTracking) {
             float angle = eightAngle(relativeX, relativeY);
             Direction best = directions[Math.round(angle)];
-            if (rc.canMove(best)) {
+            if (rc.canMove(best) && !avoidDueToRadius3.contains(rc.getLocation().add(best))) {
                 try {
                     rc.move(best);
                     windingNumber += turnJump(best, relativeX, relativeY);
@@ -98,7 +119,7 @@ public class OrbitPathfinder {
         Direction attempt = wall.rotateLeft();
         float attemptAngle = wallAngle + 1;
         for (int i = 0; i < 7; i++) { // try seven directions before giving up
-            if (rc.canMove(attempt)) {
+            if (rc.canMove(attempt) && !avoidDueToRadius3.contains(rc.getLocation().add(attempt))) {
                 try {
                     rc.move(attempt);
                     RobotPlayer.path.add(rc.getLocation());
@@ -138,6 +159,79 @@ public class OrbitPathfinder {
         }
         System.out.println("GoTo object could not find a direction");
         wallAngle -= 8;
+        rcLocation = rc.getLocation();
+    }
+    private void stepCounterclockwise() {
+        if (!rc.isMovementReady()) {
+            return;
+        }
+        MapLocation rcLoc = rc.getLocation();
+        int relativeX = destX - rcLoc.x;
+        int relativeY = destY - rcLoc.y;
+        if (relativeX == 0 && relativeY == 0) {
+            return;
+        }
+        if (!angleTracking) {
+            float angle = eightAngle(relativeX, relativeY);
+            Direction best = directions[Math.round(angle)];
+            if (rc.canMove(best) && !avoidDueToRadius3.contains(rc.getLocation().add(best))) {
+                try {
+                    rc.move(best);
+                    windingNumber += turnJump(best, relativeX, relativeY);
+                    RobotPlayer.path.addLast(rc.getLocation());
+                } catch (GameActionException ignored) {
+                }
+                rcLocation = rc.getLocation();
+                return;
+            } // otherwise we can't move there
+            angleTracking = true;
+            wallAngle = Math.round(angle) + windingNumber; // wall angle should be similar to adjustedAngle
+            wall = best;
+        }
+        // angle tracking is on if we reach here
+        Direction attempt = wall.rotateRight();
+        float attemptAngle = wallAngle - 1;
+        for (int i = 0; i < 7; i++) { // try seven directions before giving up
+            if (rc.canMove(attempt) && !avoidDueToRadius3.contains(rc.getLocation().add(attempt))) {
+                try {
+                    rc.move(attempt);
+                    RobotPlayer.path.add(rc.getLocation());
+                    windingNumber += turnJump(attempt, relativeX, relativeY);
+                    float angle = eightAngle(relativeX - attempt.dx, relativeY - attempt.dy);
+                    float adjustedAngle = angle + windingNumber;
+                    if (attemptAngle >= adjustedAngle) {
+                        Direction bestDirection = directions[Math.round(angle)];
+                        angleTracking = false;
+                        wall = Direction.CENTER;
+                        wallAngle = Float.NaN;
+                        rcLocation = rc.getLocation();
+                        return;
+                    }
+                    // if it's not the best direction, we have to set wall based on our movement
+                    // we went in the direction to the left of the wall
+                    if (attempt == Direction.EAST || attempt == Direction.NORTH ||
+                            attempt == Direction.WEST || attempt == Direction.SOUTH) {
+                        // if we went in a cardinal direction, wall moved from diagonal to cardinal direction
+                        wall = wall.rotateLeft();
+                        wallAngle -= 1;
+                    } else {
+                        // if we went in a diagonal direction, the wall moved from a cardinal direction
+                        // to cardinal direction
+                        wall = wall.rotateLeft().rotateLeft();
+                        wallAngle -= 2;
+                    }
+                } catch (GameActionException ignored) {}
+                rcLocation = rc.getLocation();
+                return;
+            }
+            // if we couldn't move that way, then it is also a wall. Also try a new attempt direction
+            wall = attempt;
+            wallAngle = attemptAngle;
+            attempt = attempt.rotateRight();
+            attemptAngle -= 1;
+        }
+        System.out.println("GoTo object could not find a direction");
+        wallAngle += 8;
         rcLocation = rc.getLocation();
     }
     private float turnJump(Direction direction, int relativeX, int relativeY) {

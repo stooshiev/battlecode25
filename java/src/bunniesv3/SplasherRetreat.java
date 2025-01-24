@@ -8,6 +8,7 @@ public class SplasherRetreat {
     public static void retreat(RobotController rc) {
         MapLocation rcLoc = rc.getLocation();
         SplasherMemory.updateRobotMemory(rc, rc.senseNearbyRobots());
+        OrbitPathfinder.avoidWithinRadius3 = SplasherMemory.enemyTowers;
         if (RobotPlayer.navigator == null && connectedTileNavigator == null) {
             // remember where the closest paint tower is
             MapLocation nearestPaintTower = SplasherMemory.getNearestFriendlyPaintTower(rc.getLocation());
@@ -29,6 +30,7 @@ public class SplasherRetreat {
                         RobotPlayer.splasherDirection = null;
                     }
                     SplasherMemory.updateRobotMemory(rc, rc.senseNearbyRobots());
+                    OrbitPathfinder.avoidWithinRadius3 = SplasherMemory.enemyTowers;
                 }
             }
         }

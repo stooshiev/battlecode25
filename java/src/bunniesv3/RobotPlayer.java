@@ -456,6 +456,7 @@ public class RobotPlayer {
         MapInfo[] nearbyTiles = rc.senseNearbyMapInfos();
         RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
         SplasherMemory.updateRobotMemory(rc, nearbyRobots);
+        OrbitPathfinder.avoidWithinRadius3 = SplasherMemory.enemyTowers;
 
         // compute a good place to attack, and attack if it's good enough
         if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT &&
