@@ -1,7 +1,6 @@
 package bunniesv3;
 
 import battlecode.common.*;
-import scala.math.Ordering$BigDecimalOrdering$class;
 
 public class SplasherRetreat {
     public static OrbitPathfinder connectedTileNavigator = null;
@@ -24,6 +23,7 @@ public class SplasherRetreat {
                     if (rc.canMove(RobotPlayer.splasherDirection)) {
                         try {
                             rc.move(RobotPlayer.splasherDirection);
+                            RobotPlayer.path.addLast(rc.getLocation());
                         } catch (GameActionException ignored) {}
                     } else {
                         RobotPlayer.splasherDirection = null;

@@ -84,6 +84,7 @@ public class OrbitPathfinder {
                 try {
                     rc.move(best);
                     windingNumber += turnJump(best, relativeX, relativeY);
+                    RobotPlayer.path.addLast(rc.getLocation());
                 } catch (GameActionException ignored) {
                 }
                 rcLocation = rc.getLocation();
@@ -100,6 +101,7 @@ public class OrbitPathfinder {
             if (rc.canMove(attempt)) {
                 try {
                     rc.move(attempt);
+                    RobotPlayer.path.add(rc.getLocation());
                     windingNumber += turnJump(attempt, relativeX, relativeY);
                     float angle = eightAngle(relativeX - attempt.dx, relativeY - attempt.dy);
                     float adjustedAngle = angle + windingNumber;
