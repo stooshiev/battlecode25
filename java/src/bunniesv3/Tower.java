@@ -91,9 +91,10 @@ class Tower extends RobotPlayer {
 	
 	public static void actOnMessages(RobotController rc, UnpackedMessage[] unpackedMessages,
 									 MapInfo[] nearbyTiles, RobotInfo[] nearbyRobots) throws GameActionException {
+		robotInNeed = null;
 		for (UnpackedMessage m : unpackedMessages) {
 			System.out.println("m: " + m);
-			if (m != null) {
+			if (m != null && turnCount - m.senderTurn <= 1) {
 				switch (m.command) {
 					case 0: break; // Save Chips
 					case 1: break; // Send Robots
@@ -110,6 +111,7 @@ class Tower extends RobotPlayer {
 	public static RobotInfo robotInNeed = null;
 	
 	public static void considerPaintRequest(RobotController rc, MapLocation loc) throws GameActionException {
+		System.out.println(loc);
 		RobotInfo robot = rc.senseRobotAtLocation(loc);
 		if (rc.getPaint() >= 150 && (float) robot.getPaintAmount() / robot.getType().paintCapacity <= 0.7) {
 			if (robotInNeed == null) {
